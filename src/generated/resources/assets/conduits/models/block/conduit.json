@@ -1,0 +1,35 @@
+{
+  "parent": "minecraft:block/block",
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ]
+    }
+  },
+  "textures": {
+    "particle": "minecraft:block/stone",
+    "mixed_joint": "conduits:conduit/mixed_joint",
+    "connection": "conduits:conduit/mixed_joint",
+    "connected": "conduits:conduit/joint",
+    "unconnected_item": "conduits:conduit/item_joint",
+    "segment_item": "conduits:conduit/item_segment",
+    "unconnected_energy": "conduits:conduit/energy_joint",
+    "segment_energy": "conduits:conduit/energy_segment"
+  },
+  "loader": "conduits:conduit",
+  "conduit_parts": {
+    "joints": {
+      "item": "conduits:conduit/item_joint",
+      "energy": "conduits:conduit/energy_joint"
+    },
+    "segments": {
+      "item": "conduits:conduit/item_segment",
+      "energy": "conduits:conduit/energy_segment"
+    },
+    "inventory_connection": "conduits:conduit/inventory_connection",
+    "mixed_joint": "conduits:conduit/mixed_joint"
+  }
+}

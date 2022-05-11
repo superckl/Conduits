@@ -1,0 +1,36 @@
+{
+  "elements": [
+    {
+      "from": [
+        5,
+        5,
+        5
+      ],
+      "to": [
+        11,
+        11,
+        11
+      ],
+      "faces": {
+        "down": {
+          "texture": "#mixed_joint"
+        },
+        "up": {
+          "texture": "#mixed_joint"
+        },
+        "north": {
+          "texture": "#mixed_joint"
+        },
+        "south": {
+          "texture": "#mixed_joint"
+        },
+        "west": {
+          "texture": "#mixed_joint"
+        },
+        "east": {
+          "texture": "#mixed_joint"
+        }
+      }
+    }
+  ]
+}

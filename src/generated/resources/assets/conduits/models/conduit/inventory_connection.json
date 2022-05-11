@@ -1,0 +1,65 @@
+{
+  "elements": [
+    {
+      "from": [
+        5,
+        15.75,
+        5
+      ],
+      "to": [
+        11,
+        16,
+        11
+      ],
+      "faces": {
+        "down": {
+          "texture": "#connection"
+        },
+        "up": {
+          "texture": "#connection"
+        },
+        "north": {
+          "texture": "#connection"
+        },
+        "south": {
+          "texture": "#connection"
+        },
+        "west": {
+          "texture": "#connection"
+        },
+        "east": {
+          "texture": "#connection"
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        15.5,
+        6.5
+      ],
+      "to": [
+        9.5,
+        15.75,
+        9.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#connection"
+        },
+        "north": {
+          "texture": "#connection"
+        },
+        "south": {
+          "texture": "#connection"
+        },
+        "west": {
+          "texture": "#connection"
+        },
+        "east": {
+          "texture": "#connection"
+        }
+      }
+    }
+  ]
+}
