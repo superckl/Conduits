@@ -1,13 +1,10 @@
 package me.superckl.conduits.data.client;
 
 import java.util.Collection;
-import java.util.EnumMap;
 import java.util.Map;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import com.mojang.math.Vector3f;
 
-import me.superckl.conduits.ConduitParts;
 import me.superckl.conduits.ConduitType;
 import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
@@ -21,8 +18,8 @@ import net.minecraftforge.client.model.generators.BlockModelProvider;
 import net.minecraftforge.client.model.generators.BlockStateProvider;
 import net.minecraftforge.client.model.generators.ConfiguredModel;
 import net.minecraftforge.client.model.generators.CustomLoaderBuilder;
+import net.minecraftforge.client.model.generators.ModelBuilder.FaceRotation;
 import net.minecraftforge.client.model.generators.ModelBuilder.Perspective;
-import net.minecraftforge.client.model.generators.ModelFile;
 import net.minecraftforge.client.model.generators.VariantBlockStateBuilder;
 import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.registries.RegistryObject;
@@ -38,36 +35,35 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 
 		final BlockModelProvider blocks = this.models();
 
+		if(2 != ConduitType.values().length)
+			throw new IllegalStateException("Number of types does not match number of segment models!");
+		final Vector3f offset1 = new Vector3f(2F, 0, 0);
+		final Vector3f offset2 = new Vector3f(-2F, 0, 0);
 		//JOINTS
-		//Faces are textured by the model loader, so we expose the textures for the loader
-		final Map<ConduitType, BlockModelBuilder> jointModels = new EnumMap<>(ConduitType.class);
-		for(final ConduitType type:ConduitType.values()) {
-			final String texture = "#unconnected_"+type.getSerializedName();
-			jointModels.put(type, blocks.getBuilder(PartType.JOINT.path(type))
-					.element().from(6.5F, 6.5F, 6.5F).to(9.5F, 9.5F, 9.5F)
-					.allFaces((dir, face) -> face.texture(texture).uvs(0, 0, 16, 16)).end());
-		}
+		//Faces are textured by the model loader
+		//Joint for one type
+		this.jointElement(blocks.getBuilder(PartType.JOINT.path(null)+"_1"), 1, Vector3f.ZERO);
+
+		//Joints for two types
+		this.jointElement(this.jointElement(blocks.getBuilder(PartType.JOINT.path(null)+"_2"), 1, offset1), 2, offset2);
 
 		//SEGMENTS
-		final Map<ConduitType, BlockModelBuilder> segmentModels = new EnumMap<>(ConduitType.class);
-		for(final ConduitType type:ConduitType.values()) {
-			final String texture = "#segment_"+type.getSerializedName();
-			segmentModels.put(type, blocks.getBuilder(PartType.SEGMENT.path(type))
-					.element().from(7F, 9.5F, 7F).to(9F, 16F, 9F)
-					.face(Direction.NORTH).texture(texture).uvs(0, 0, 13, 4).end()//is UV necessary?
-					.face(Direction.SOUTH).texture(texture).uvs(0, 0, 13, 4).end()
-					.face(Direction.EAST).texture(texture).uvs(0, 0, 13, 4).end()
-					.face(Direction.WEST).texture(texture).uvs(0, 0, 13, 4).end().end());
-		}
+		//Faces are textures by the model loader
+		//Segments for one type
+		this.segmentElement(blocks.getBuilder(PartType.SEGMENT.path(null)+"_1"), 1, Vector3f.ZERO);
+
+		//Segments for two types
+		this.segmentElement(this.segmentElement(blocks.getBuilder(PartType.SEGMENT.path(null)+"_2"),
+				1, offset1), 2, offset2);
 
 		//MIXED JOINT
 		blocks.getBuilder(PartType.MIXED_JOINT.path(null)).element()
-		.from(5F, 5F, 5F).to(11F, 11F, 11F).allFaces((dir, face) -> face.texture("#mixed_joint")).end();
+		.from(4F, 4F, 4F).to(12F, 12F, 12F).allFaces((dir, face) -> face.texture("#mixed_joint")).end();
 
 		//MACHINE CONNECTION
 		blocks.getBuilder(PartType.CONNECTION.path(null)).element()
-		.from(5F, 15.75F, 5F).to(11F, 16F, 11F).allFaces((dir, builder) -> builder.texture("#connection")).end().element()
-		.from(6.5F, 15.5F, 6.5F).to(9.5F, 15.75F, 9.5F)
+		.from(3F, 15.75F, 3F).to(13F, 16F, 13F).allFaces((dir, builder) -> builder.texture("#connection")).end().element()
+		.from(4.5F, 15.5F, 4.5F).to(11.5F, 15.75F, 11.5F)
 		.face(Direction.NORTH).texture("#connection").end()
 		.face(Direction.SOUTH).texture("#connection").end()
 		.face(Direction.EAST).texture("#connection").end()
@@ -75,10 +71,10 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 		.face(Direction.DOWN).texture("#connection").end();
 
 		//CONDUIT BLOCK MODEL
-		//defers to model loader
+		//defers to model loader and exposes textures
 		final BlockModelBuilder conduitBuilder = blocks.getBuilder("conduit");
 		conduitBuilder.parent(this.models().getExistingFile(this.mcLoc("block")));
-		conduitBuilder.customLoader((builder, helper) -> new ConduitModelLoaderBuilder(builder, helper, ConduitParts.from((part, type) -> blocks.getExistingFile(this.modLoc(part.path(type))))));
+		conduitBuilder.customLoader(ConduitModelLoaderBuilder::new);
 		conduitBuilder.texture("particle", this.mcLoc("block/stone"));//TODO temp particle texture
 		conduitBuilder.texture("mixed_joint", PartType.MIXED_JOINT.path(null));
 		conduitBuilder.texture("connection", PartType.MIXED_JOINT.path(null));
@@ -88,7 +84,7 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 			conduitBuilder.texture("segment_"+type.getSerializedName(), PartType.SEGMENT.path(type));
 		}
 		final BlockModelBuilder.TransformsBuilder transforms = conduitBuilder.transforms();
-		transforms.transform(Perspective.GUI).rotation(30F, 225F, 0).scale(1F).end();
+		transforms.transform(Perspective.GUI).rotation(30F, 225F, 0F).scale(0.75F).end();
 
 		//CONDUIT BLOCKSTATE
 		//point to conduit block model
@@ -102,20 +98,24 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 
 	}
 
+	private BlockModelBuilder segmentElement(final BlockModelBuilder builder, final int index, final Vector3f offset) {
+		return builder.element().from(7F+offset.x(), 9.5F+offset.y(), 7F+offset.z()).to(9F+offset.x(), 16F+offset.y(), 9F+offset.z())
+				.face(Direction.NORTH).texture("#segment_"+index).uvs(0, 0, 13, 4).rotation(FaceRotation.CLOCKWISE_90).end()//is UV necessary?
+				.face(Direction.SOUTH).texture("#segment_"+index).uvs(0, 0, 13, 4).rotation(FaceRotation.CLOCKWISE_90).end()
+				.face(Direction.EAST).texture("#segment_"+index).uvs(0, 0, 13, 4).rotation(FaceRotation.CLOCKWISE_90).end()
+				.face(Direction.WEST).texture("#segment_"+index).uvs(0, 0, 13, 4).rotation(FaceRotation.CLOCKWISE_90).end()
+				.face(Direction.UP).texture("#segment_"+index).uvs(0, 0, 2, 2).end().end();
+	}
+
+	private BlockModelBuilder jointElement(final BlockModelBuilder builder, final int index, final Vector3f offset) {
+		return builder.element().from(6.5F+offset.x(), 6.5F+offset.y(), 6.5F+offset.z()).to(9.5F+offset.x(), 9.5F+offset.y(), 9.5F+offset.z())
+				.allFaces((dir, face) -> face.texture("#joint_"+index).uvs(0, 0, 16, 16)).end();
+	}
+
 	public static class ConduitModelLoaderBuilder extends CustomLoaderBuilder<BlockModelBuilder>{
 
-		private final ConduitParts<ModelFile> parts;
-
-		public ConduitModelLoaderBuilder(final BlockModelBuilder parent, final ExistingFileHelper existingFileHelper, final ConduitParts<ModelFile> parts) {
+		public ConduitModelLoaderBuilder(final BlockModelBuilder parent, final ExistingFileHelper existingFileHelper) {
 			super(new ResourceLocation(Conduits.MOD_ID, "conduit"), parent, existingFileHelper);
-			this.parts = parts;
-		}
-
-		@Override
-		public JsonObject toJson(final JsonObject json) {
-			super.toJson(json);
-			json.add("conduit_parts", this.parts.toJson(model -> new JsonPrimitive(model.getLocation().toString())));
-			return json;
 		}
 
 	}

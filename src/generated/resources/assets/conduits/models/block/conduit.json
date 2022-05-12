@@ -6,6 +6,11 @@
         30,
         225,
         0
+      ],
+      "scale": [
+        0.75,
+        0.75,
+        0.75
       ]
     }
   },
@@ -19,17 +24,5 @@
     "unconnected_energy": "conduits:conduit/energy_joint",
     "segment_energy": "conduits:conduit/energy_segment"
   },
-  "loader": "conduits:conduit",
-  "conduit_parts": {
-    "joints": {
-      "item": "conduits:conduit/item_joint",
-      "energy": "conduits:conduit/energy_joint"
-    },
-    "segments": {
-      "item": "conduits:conduit/item_segment",
-      "energy": "conduits:conduit/energy_segment"
-    },
-    "inventory_connection": "conduits:conduit/inventory_connection",
-    "mixed_joint": "conduits:conduit/mixed_joint"
-  }
+  "loader": "conduits:conduit"
 }

@@ -1,5 +1,6 @@
 package me.superckl.conduits.client;
 
+import me.superckl.conduits.ConduitType;
 import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.PartType;
@@ -32,8 +33,12 @@ public class ClientRegistration {
 
 	@SubscribeEvent
 	public static void textureStitch(final TextureStitchEvent.Pre e) {
-		//We need to stitch the connected joint texture because it's not on any model face by default
-		//(It's placed onto the joint by the model baker)
+		//We need to stitch the joint and segment textures because they're not on any model face by default
+		//(They're placed onto the joints/segments by the baked model)
+		for(final ConduitType type:ConduitType.values()) {
+			e.addSprite(new ResourceLocation(Conduits.MOD_ID, PartType.JOINT.path(type)));
+			e.addSprite(new ResourceLocation(Conduits.MOD_ID, PartType.SEGMENT.path(type)));
+		}
 		e.addSprite(new ResourceLocation(Conduits.MOD_ID, PartType.JOINT.path(null)));
 	}
 

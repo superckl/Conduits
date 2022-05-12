@@ -12,41 +12,54 @@
         9
       ],
       "faces": {
+        "up": {
+          "texture": "#segment_1",
+          "uv": [
+            0.0,
+            0.0,
+            2.0,
+            2.0
+          ]
+        },
         "north": {
-          "texture": "#segment_energy",
+          "texture": "#segment_1",
           "uv": [
             0.0,
             0.0,
             13.0,
             4.0
-          ]
+          ],
+          "rotation": 90
         },
         "south": {
-          "texture": "#segment_energy",
+          "texture": "#segment_1",
           "uv": [
             0.0,
             0.0,
             13.0,
             4.0
-          ]
+          ],
+          "rotation": 90
         },
         "west": {
-          "texture": "#segment_energy",
+          "texture": "#segment_1",
           "uv": [
             0.0,
             0.0,
             13.0,
             4.0
-          ]
+          ],
+          "rotation": 90
         },
         "east": {
-          "texture": "#segment_energy",
+          "texture": "#segment_1",
           "uv": [
             0.0,
             0.0,
             13.0,
             4.0
-          ]
+          ],
+          "rotation": 90
         }
       }
     }

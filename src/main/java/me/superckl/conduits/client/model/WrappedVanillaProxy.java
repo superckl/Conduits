@@ -2,13 +2,16 @@ package me.superckl.conduits.client.model;
 
 import java.util.Collection;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
 
@@ -29,18 +32,14 @@ import net.minecraftforge.client.model.IModelLoader;
 import net.minecraftforge.client.model.ModelLoaderRegistry.VanillaProxy;
 import net.minecraftforge.client.model.geometry.ISimpleModelGeometry;
 
-public class JointModel implements ISimpleModelGeometry<JointModel>{
+public class WrappedVanillaProxy implements ISimpleModelGeometry<WrappedVanillaProxy>{
 
-	private final BlockElement joint;
-	//private final String unconnectedTexture;
-	//private final String connectedTexture;
+	private final List<BlockElement> elements;
 	private final VanillaProxy wrapped;
 
-	public JointModel(final BlockElement el) {
-		this.joint = el;
-		//this.unconnectedTexture = unconnectedTexture;
-		//this.connectedTexture = connectedTexture;
-		this.wrapped = new VanillaProxy(Lists.newArrayList(el));
+	public WrappedVanillaProxy(final List<BlockElement> elements) {
+		this.elements = elements;
+		this.wrapped = new VanillaProxy(elements);
 	}
 
 	@Override
@@ -53,19 +52,22 @@ public class JointModel implements ISimpleModelGeometry<JointModel>{
 	@Override
 	public Collection<Material> getTextures(final IModelConfiguration owner,
 			final Function<ResourceLocation, UnbakedModel> modelGetter, final Set<Pair<String, String>> missingTextureErrors) {
-		//return Lists.newArrayList(owner.resolveTexture(this.unconnectedTexture), owner.resolveTexture(this.connectedTexture));
 		return this.wrapped.getTextures(owner, modelGetter, missingTextureErrors);
 	}
 
-	public JointModel retexture(final Function<Direction, String> texturer) {
-		final Map<Direction, BlockElementFace> faces = new EnumMap<>(Direction.class);
-		this.joint.faces.forEach((dir, face) -> {
-			faces.put(dir, new BlockElementFace(face.cullForDirection, face.tintIndex, texturer.apply(dir), face.uv));
-		});
-		return new JointModel(new BlockElement(this.joint.from, this.joint.to, faces, this.joint.rotation, this.joint.shade));
+	public WrappedVanillaProxy retexture(final BiFunction<Direction, String, String> texturer) {
+		final List<BlockElement> elements = this.elements.stream().map(el -> {
+			final Map<Direction, BlockElementFace> faces = new EnumMap<>(Direction.class);
+			el.faces.forEach((dir, face) -> {
+				faces.put(dir, new BlockElementFace(face.cullForDirection, face.tintIndex, texturer.apply(dir, face.texture), face.uv));
+			});
+			return new BlockElement(el.from, el.to, faces, el.rotation, el.shade);
+		}).collect(Collectors.toList());
+
+		return new WrappedVanillaProxy(elements);
 	}
 
-	public static class Loader implements IModelLoader<JointModel>{
+	public static class Loader implements IModelLoader<WrappedVanillaProxy>{
 
 		public static final Loader INSTANCE = new Loader();
 
@@ -75,19 +77,17 @@ public class JointModel implements ISimpleModelGeometry<JointModel>{
 		public void onResourceManagerReload(final ResourceManager pResourceManager) {}
 
 		@Override
-		public JointModel read(final JsonDeserializationContext context, final JsonObject obj) {
-			//final JsonObject textures = obj.getAsJsonObject("textures");
-			return new JointModel(this.getModelElement(context, obj));
+		public WrappedVanillaProxy read(final JsonDeserializationContext context, final JsonObject obj) {
+			return new WrappedVanillaProxy(this.getModelElements(context, obj));
 		}
 
-		private BlockElement getModelElement(final JsonDeserializationContext deserializationContext, final JsonObject object) {
-			if (object.has("elements")) {
-				final JsonArray array = GsonHelper.getAsJsonArray(object, "elements");
-				if(array.size() != 1)
-					throw new IllegalArgumentException("Joint model requires exactly one block element!");
-				return deserializationContext.deserialize(array.get(0), BlockElement.class);
-			}
-			return null;
+		private List<BlockElement> getModelElements(final JsonDeserializationContext deserializationContext, final JsonObject object) {
+			final List<BlockElement> list = Lists.newArrayList();
+			if (object.has("elements"))
+				for(final JsonElement jsonelement : GsonHelper.getAsJsonArray(object, "elements"))
+					list.add(deserializationContext.deserialize(jsonelement, BlockElement.class));
+
+			return list;
 		}
 
 	}

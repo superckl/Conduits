@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import com.google.common.math.IntMath;
 
 import lombok.RequiredArgsConstructor;
@@ -84,7 +86,7 @@ public class ConduitBlockEntity extends BlockEntity{
 		if(this.isTier(type, tier))
 			return Optional.of(tier);
 		final ConduitTier prev = this.connections.setTier(type, tier);
-		this.setChanged();
+		this.connectionChange();
 		if(prev == null)
 			this.discoverNeighbors();
 		//TODO update network on server side only
@@ -220,6 +222,10 @@ public class ConduitBlockEntity extends BlockEntity{
 			return this.connections.remove(dir);
 		}
 
+		public boolean hasConnection(final Direction dir) {
+			return this.connections.containsKey(dir);
+		}
+
 		public static ConnectionState with(final ConduitTier tier) {
 			return new ConnectionState(tier, new EnumMap<>(Direction.class));
 		}
@@ -266,10 +272,22 @@ public class ConduitBlockEntity extends BlockEntity{
 			return this.data.keySet().stream();
 		}
 
+		public int numConnections(final Direction dir) {
+			int num = 0;
+			for(final ConnectionState state:this.data.values())
+				if(state.hasConnection(dir))
+					num += 1;
+			return num;
+		}
+
 		public Map<Direction, ConnectionType> getConnections(final ConduitType type){
 			if(!this.hasType(type))
 				return Collections.emptyMap();
 			return Collections.unmodifiableMap(this.data.get(type).connections());
+		}
+
+		public boolean hasConnection(final ConduitType type, final Direction dir) {
+			return this.getConnections(type).containsKey(dir);
 		}
 
 		public boolean setConnection(final ConduitType type, final Direction dir, final ConnectionType con) {
@@ -303,6 +321,16 @@ public class ConduitBlockEntity extends BlockEntity{
 		public void load(final CompoundTag tag) {
 			this.data.clear();
 			this.data.putAll(NBTUtil.deserializeMap(tag, () -> new EnumMap<>(ConduitType.class), ConduitType.class, ConnectionState::from));
+		}
+
+		public Map<Direction, Map<ConduitType, Pair<ConduitTier, ConnectionType>>> byDirection(){
+			final Map<Direction, Map<ConduitType, Pair<ConduitTier, ConnectionType>>> base = new EnumMap<>(Direction.class);
+			this.data.forEach((type, state) -> {
+				state.connections().forEach((dir, con) -> {
+					base.computeIfAbsent(dir, x -> new EnumMap<>(ConduitType.class)).put(type, Pair.of(state.tier(), con));
+				});
+			});
+			return base;
 		}
 
 		public static ConnectionData make() {

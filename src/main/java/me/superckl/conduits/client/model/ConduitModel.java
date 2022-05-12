@@ -13,7 +13,6 @@ import com.mojang.datafixers.util.Pair;
 import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.ConduitParts;
 import me.superckl.conduits.Conduits;
-import me.superckl.conduits.PartType;
 import me.superckl.conduits.util.ResourceHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
@@ -27,14 +26,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraftforge.client.model.IModelConfiguration;
 import net.minecraftforge.client.model.IModelLoader;
-import net.minecraftforge.client.model.ModelLoaderRegistry;
 import net.minecraftforge.client.model.geometry.IModelGeometry;
-import net.minecraftforge.client.model.geometry.ISimpleModelGeometry;
 
 @RequiredArgsConstructor
 public class ConduitModel implements IModelGeometry<ConduitModel>{
 
-	private final ConduitParts<? extends ISimpleModelGeometry<?>> parts;
+	private final ConduitParts<? extends WrappedVanillaProxy> parts;
 
 	@Override
 	public BakedModel bake(final IModelConfiguration owner, final ModelBakery bakery,
@@ -65,17 +62,15 @@ public class ConduitModel implements IModelGeometry<ConduitModel>{
 
 		@Override
 		public ConduitModel read(final JsonDeserializationContext deserializationContext, final JsonObject modelContents) {
-			final ConduitParts<ISimpleModelGeometry<?>> parts = ConduitParts.from((part, type) -> {
-				final ResourceLocation loc = new ResourceLocation(Conduits.MOD_ID, "models/"+part.path(type)+".json");
+			final ConduitParts<WrappedVanillaProxy> parts = ConduitParts.from(path -> {
+				final ResourceLocation loc = new ResourceLocation(Conduits.MOD_ID, "models/"+path+".json");
 				try {
 					final JsonObject obj = ResourceHelper.toJson(this.manager.getResource(loc)).getAsJsonObject();
-					if(part == PartType.JOINT)
-						return JointModel.Loader.INSTANCE.read(deserializationContext, obj);
-					return ModelLoaderRegistry.VanillaProxy.Loader.INSTANCE.read(deserializationContext, obj);
+					return WrappedVanillaProxy.Loader.INSTANCE.read(deserializationContext, obj);
 				} catch(final IOException e) {
 					throw new IllegalStateException("Unable to load conduit model resource "+loc.toString(), e);
 				}
-			});
+			}, WrappedVanillaProxy.class);
 			return new ConduitModel(parts);
 		}
 
