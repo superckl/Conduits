@@ -19,20 +19,6 @@ repositories{
     
 }
 
-sourceSets {
-	main {
-		resources {
-			srcDir 'src/generated/resources'
-		}
-	}
-	datagen {
-		compileClasspath += main.compileClasspath
-		runtimeClasspath += main.runtimeClasspath
-		compileClasspath += main.output
-		runtimeClasspath += main.output
-	}
-}
-
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
@@ -125,7 +111,6 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 // Example for how to get properties into the manifest for reading by the runtime..
 jar {
-	from sourceSets.main.output
 
     manifest {
         attributes([
@@ -145,6 +130,10 @@ jar {
 task sourcesJar(type: Jar) {
 	archiveClassifier = 'sources'
 	from sourceSets.main.allJava
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
 }
 
 artifacts {
