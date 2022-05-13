@@ -49,10 +49,14 @@ public class ConduitShapeHelper {
 		case 1:
 			return new Vector3f[] {Vector3f.ZERO};
 		case 2:
-			return new Vector3f[] {new Vector3f(2, 0, 0), new Vector3f(-2, 0, 0)};
+			return new Vector3f[] {new Vector3f(2/16F, 0, 0), new Vector3f(-2/16F, 0, 0)};
 		default:
 			throw new IllegalArgumentException("Unsupported number of segments "+numSegments);
 		}
+	}
+
+	public static VoxelShape getShape(final ConduitPartType type) {
+		return ConduitShapeHelper.BASE_SHAPES.get(type);
 	}
 
 	public static Boxf toModelBox(final AABB bounds) {
@@ -92,7 +96,7 @@ public class ConduitShapeHelper {
 	}
 
 	public static ConduitType[] sort(final Collection<ConduitType> types) {
-		return types.stream().sorted(ConduitType::compareTo).toArray(i -> new ConduitType[i]);
+		return types.stream().sorted(ConduitType::compareTo).toArray(ConduitType[]::new);
 	}
 
 	public static record Boxf(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {}

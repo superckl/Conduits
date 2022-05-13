@@ -7,6 +7,8 @@ import java.util.Random;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import com.mojang.math.Vector3f;
+
 import it.unimi.dsi.fastutil.booleans.BooleanObjectPair;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.RequiredArgsConstructor;
@@ -109,14 +111,10 @@ public class ConduitBakedModel implements BakedModel{
 		return builder.build();
 	}
 
-	/*
-	private boolean isPassthrough(final Map<ConduitType, Pair<ConduitTier, ConnectionType>> first,
-			final Map<ConduitType, Pair<ConduitTier, ConnectionType>> second) {
-		return first.keySet().equals(second.keySet());
-	}*/
-
 	private WrappedVanillaProxy toModel(final ConduitPart part, final BiFunction<Direction, String, String> texturer) {
-		return this.parts.get(part.type()).offset(part.offset()).retexture(texturer);
+		final Vector3f offset = part.offset().copy();
+		offset.mul(16);
+		return this.parts.get(part.type()).offset(offset).retexture(texturer);
 	}
 
 	private void addQuads(final ConduitPart part, final BiFunction<Direction, String, String> texturer, final IModelBuilder<?> builder) {

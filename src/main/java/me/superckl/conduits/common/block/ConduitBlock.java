@@ -1,8 +1,14 @@
 package me.superckl.conduits.common.block;
 
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.ModItems;
 import me.superckl.conduits.conduit.ConduitType;
+import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
@@ -24,7 +30,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public class ConduitBlock extends Block implements EntityBlock, SimpleWaterloggedBlock{
 
 	public ConduitBlock() {
-		super(Properties.of(Material.STONE).noOcclusion().isViewBlocking((x, y, z) -> false));
+		super(Properties.of(Material.STONE).noOcclusion().isViewBlocking((x, y, z) -> false).dynamicShape());
 
 		BlockState def = this.defaultBlockState();
 		def = def.setValue(BlockStateProperties.WATERLOGGED, false);
@@ -66,12 +72,18 @@ public class ConduitBlock extends Block implements EntityBlock, SimpleWaterlogge
 		pBuilder.add(BlockStateProperties.WATERLOGGED);
 	}
 
-	@Override
-	public VoxelShape getShape(final BlockState pState, final BlockGetter level, final BlockPos pPos, final CollisionContext pContext) {
-		if(level.getBlockEntity(pPos) instanceof final ConduitBlockEntity conduit) {
+	private static final Map<ConduitConnectionMap, VoxelShape> SHAPE_CACHE = new Object2ObjectOpenHashMap<>(ConduitConnectionMap.states());
 
-		}
+	@Override
+	public VoxelShape getShape(final BlockState pState, final BlockGetter level, final BlockPos pPos, @Nullable final CollisionContext pContext) {
+		if(level.getBlockEntity(pPos) instanceof final ConduitBlockEntity conduit)
+			return ConduitBlock.SHAPE_CACHE.computeIfAbsent(conduit.getConnections(), connections -> connections.toParts().getShape());
 		return Shapes.block();
+	}
+
+	@Override
+	public VoxelShape getInteractionShape(final BlockState pState, final BlockGetter pLevel, final BlockPos pPos) {
+		return this.getShape(pState, pLevel, pPos, null);
 	}
 
 }

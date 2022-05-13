@@ -2,6 +2,8 @@ package me.superckl.conduits.common.block;
 
 import java.util.Optional;
 
+import lombok.AccessLevel;
+import lombok.Getter;
 import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.common.item.ConduitItem;
 import me.superckl.conduits.conduit.ConduitTier;
@@ -26,6 +28,7 @@ import net.minecraftforge.common.util.LazyOptional;
 
 public class ConduitBlockEntity extends BlockEntity{
 
+	@Getter(AccessLevel.PACKAGE)
 	private final ConduitConnectionMap connections = ConduitConnectionMap.make();
 
 	public ConduitBlockEntity(final BlockPos pWorldPosition, final BlockState pBlockState) {
