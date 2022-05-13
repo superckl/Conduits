@@ -1,4 +1,4 @@
-package me.superckl.conduits;
+package me.superckl.conduits.conduit;
 
 import lombok.RequiredArgsConstructor;
 import net.minecraft.nbt.StringTag;

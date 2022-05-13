@@ -5,15 +5,15 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import lombok.Getter;
-import me.superckl.conduits.ConduitTier;
-import me.superckl.conduits.ConduitType;
 import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.ModItems;
 import me.superckl.conduits.client.ConduitItemRenderer;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
-import me.superckl.conduits.common.block.ConduitBlockEntity.ConnectionData;
-import me.superckl.conduits.common.block.ConduitBlockEntity.ConnectionType;
+import me.superckl.conduits.conduit.ConduitTier;
+import me.superckl.conduits.conduit.ConduitType;
+import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
+import me.superckl.conduits.conduit.connection.ConduitConnectionType;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -52,10 +52,10 @@ public class ConduitItem extends BlockItem{
 		this.tier = tier;
 		this.descriptionId = Util.makeDescriptionId("item", new ResourceLocation(Conduits.MOD_ID, "conduit/"+type.getSerializedName()+"/"+tier.getSerializedName()));
 
-		final ConnectionData data = ConnectionData.make();
+		final ConduitConnectionMap data = ConduitConnectionMap.make();
 		data.setTier(type, tier);
-		data.setConnection(type, Direction.WEST, ConnectionType.CONDUIT);
-		data.setConnection(type, Direction.EAST, ConnectionType.CONDUIT);
+		data.setConnection(type, Direction.WEST, ConduitConnectionType.CONDUIT);
+		data.setConnection(type, Direction.EAST, ConduitConnectionType.CONDUIT);
 		this.renderData = new ModelDataMap.Builder().withInitial(ConduitBlockEntity.CONNECTION_PROPERTY, data).build();
 	}
 

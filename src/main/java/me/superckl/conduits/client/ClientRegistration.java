@@ -1,10 +1,10 @@
 package me.superckl.conduits.client;
 
-import me.superckl.conduits.ConduitType;
 import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
-import me.superckl.conduits.PartType;
 import me.superckl.conduits.client.model.ConduitModel;
+import me.superckl.conduits.conduit.ConduitType;
+import me.superckl.conduits.conduit.part.ConduitPartType;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
@@ -36,10 +36,10 @@ public class ClientRegistration {
 		//We need to stitch the joint and segment textures because they're not on any model face by default
 		//(They're placed onto the joints/segments by the baked model)
 		for(final ConduitType type:ConduitType.values()) {
-			e.addSprite(new ResourceLocation(Conduits.MOD_ID, PartType.JOINT.path(type)));
-			e.addSprite(new ResourceLocation(Conduits.MOD_ID, PartType.SEGMENT.path(type)));
+			e.addSprite(new ResourceLocation(Conduits.MOD_ID, ConduitPartType.JOINT.path(type)));
+			e.addSprite(new ResourceLocation(Conduits.MOD_ID, ConduitPartType.SEGMENT.path(type)));
 		}
-		e.addSprite(new ResourceLocation(Conduits.MOD_ID, PartType.JOINT.path(null)));
+		e.addSprite(new ResourceLocation(Conduits.MOD_ID, ConduitPartType.JOINT.path(null)));
 	}
 
 }

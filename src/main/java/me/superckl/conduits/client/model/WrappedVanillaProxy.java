@@ -14,6 +14,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
+import com.mojang.math.Vector3f;
 
 import net.minecraft.client.renderer.block.model.BlockElement;
 import net.minecraft.client.renderer.block.model.BlockElementFace;
@@ -64,6 +65,17 @@ public class WrappedVanillaProxy implements ISimpleModelGeometry<WrappedVanillaP
 			return new BlockElement(el.from, el.to, faces, el.rotation, el.shade);
 		}).collect(Collectors.toList());
 
+		return new WrappedVanillaProxy(elements);
+	}
+
+	public WrappedVanillaProxy offset(final Vector3f offset) {
+		final List<BlockElement> elements = this.elements.stream().map(el -> {
+			final Vector3f from = el.from.copy();
+			final Vector3f to = el.to.copy();
+			from.add(offset);
+			to.add(offset);
+			return new BlockElement(from, to, el.faces, el.rotation, el.shade);
+		}).collect(Collectors.toList());
 		return new WrappedVanillaProxy(elements);
 	}
 

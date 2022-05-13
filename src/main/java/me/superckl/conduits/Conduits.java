@@ -3,6 +3,8 @@ package me.superckl.conduits;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import me.superckl.conduits.conduit.ConduitTier;
+import me.superckl.conduits.conduit.ConduitType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fml.common.Mod;

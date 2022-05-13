@@ -1,8 +1,8 @@
 package me.superckl.conduits.common.block;
 
-import me.superckl.conduits.ConduitType;
 import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.ModItems;
+import me.superckl.conduits.conduit.ConduitType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
@@ -17,27 +17,14 @@ import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class ConduitBlock extends Block implements EntityBlock, SimpleWaterloggedBlock{
 
-	/*
-	public static final Map<ConduitType, Map<Direction, BooleanProperty>> CONNECTIONS = Collections.unmodifiableMap(Util.make(new EnumMap<>(ConduitType.class), map -> {
-		for(final ConduitType type : ConduitType.values()) {
-			final Map<Direction, BooleanProperty> typeMap = new EnumMap<>(Direction.class);
-			for (final Direction dir:Direction.values())
-				typeMap.put(dir, BooleanProperty.create(type.name().toLowerCase()+"_conduit_"+dir.getSerializedName()));
-			map.put(type, Collections.unmodifiableMap(typeMap));
-		}
-	}));
-
-	public static final Map<ConduitType, EnumProperty<ConduitTier>> TIERS = Collections.unmodifiableMap(Util.make(new EnumMap<>(ConduitType.class), map -> {
-		for(final ConduitType type : ConduitType.values())
-			map.put(type, EnumProperty.create(type.name().toLowerCase()+"_conduit_tier", ConduitTier.class));
-	}));
-	 */
-
 	public ConduitBlock() {
-		super(Properties.of(Material.STONE).noOcclusion().dynamicShape().isViewBlocking((x, y, z) -> false));
+		super(Properties.of(Material.STONE).noOcclusion().isViewBlocking((x, y, z) -> false));
 
 		BlockState def = this.defaultBlockState();
 		def = def.setValue(BlockStateProperties.WATERLOGGED, false);
@@ -77,6 +64,14 @@ public class ConduitBlock extends Block implements EntityBlock, SimpleWaterlogge
 	protected void createBlockStateDefinition(final Builder<Block, BlockState> pBuilder) {
 		super.createBlockStateDefinition(pBuilder);
 		pBuilder.add(BlockStateProperties.WATERLOGGED);
+	}
+
+	@Override
+	public VoxelShape getShape(final BlockState pState, final BlockGetter level, final BlockPos pPos, final CollisionContext pContext) {
+		if(level.getBlockEntity(pPos) instanceof final ConduitBlockEntity conduit) {
+
+		}
+		return Shapes.block();
 	}
 
 }

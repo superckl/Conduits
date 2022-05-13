@@ -1,6 +1,5 @@
 package me.superckl.conduits.client.model;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -8,17 +7,16 @@ import java.util.Random;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.apache.commons.lang3.tuple.Pair;
-
+import it.unimi.dsi.fastutil.booleans.BooleanObjectPair;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.RequiredArgsConstructor;
-import me.superckl.conduits.ConduitParts;
-import me.superckl.conduits.ConduitTier;
-import me.superckl.conduits.ConduitType;
-import me.superckl.conduits.PartType;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
-import me.superckl.conduits.common.block.ConduitBlockEntity.ConnectionData;
-import me.superckl.conduits.common.block.ConduitBlockEntity.ConnectionType;
+import me.superckl.conduits.conduit.ConduitTier;
+import me.superckl.conduits.conduit.ConduitType;
+import me.superckl.conduits.conduit.ConfiguredConduit;
+import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
+import me.superckl.conduits.conduit.part.ConduitPart;
+import me.superckl.conduits.conduit.part.ConduitParts;
 import net.minecraft.Util;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
@@ -39,7 +37,7 @@ import net.minecraftforge.client.model.data.IModelData;
 @RequiredArgsConstructor
 public class ConduitBakedModel implements BakedModel{
 
-	private static final ConnectionData DEFAULT = Util.make(ConnectionData.make(),
+	private static final ConduitConnectionMap DEFAULT = Util.make(ConduitConnectionMap.make(),
 			data -> data.setTier(ConduitType.ENERGY, ConduitTier.EARLY));
 
 	private final ConduitParts<? extends WrappedVanillaProxy> parts;
@@ -50,7 +48,7 @@ public class ConduitBakedModel implements BakedModel{
 	private final ItemOverrides overrides;
 	private final ResourceLocation modelLocation;
 
-	private final Map<ConnectionData, List<BakedQuad>> modelCache = new Object2ObjectOpenHashMap<>(ConnectionData.states());
+	private final Map<ConduitConnectionMap, List<BakedQuad>> modelCache = new Object2ObjectOpenHashMap<>(ConduitConnectionMap.states());
 
 	@Override
 	public List<BakedQuad> getQuads(final BlockState pState, final Direction pSide, final Random pRand) {
@@ -61,106 +59,72 @@ public class ConduitBakedModel implements BakedModel{
 	public List<BakedQuad> getQuads(final BlockState state, final Direction side, final Random rand, final IModelData extraData) {
 		if(side != null)
 			return Collections.emptyList();
-		ConnectionData data = ConduitBakedModel.DEFAULT;
+		ConduitConnectionMap data = ConduitBakedModel.DEFAULT;
 		if(extraData.hasProperty(ConduitBlockEntity.CONNECTION_PROPERTY))
 			data = extraData.getData(ConduitBlockEntity.CONNECTION_PROPERTY);
 		return this.modelCache.computeIfAbsent(data, x -> this.bake(x).getQuads(state, null, rand, extraData));
 	}
 
-	private BakedModel bake(final ConnectionData data) {
+	private BakedModel bake(final ConduitConnectionMap data) {
 		final TextureAtlasSprite particle = this.spriteGetter.apply(this.owner.resolveTexture("particle"));
 		final IModelBuilder<?> builder = IModelBuilder.of(this.owner, this.overrides, particle);
 
-		boolean mixed = true;
-		final Direction passThrough;
-		final var byDir = data.byDirection();
-		final long numTypes = data.types().count();
+		final ConfiguredConduit parts = data.toParts();
 
-		//Determine what kind of joint we have
-		if(numTypes <= 1 || byDir.size() == 0) {
-			//This is an isolated conduit, not mixed and not passthrough
-			mixed = false;
-			passThrough = null;
-		}else if(byDir.size() == 1) {
-			//This is the the end of series of conduits
-			final Direction dir = byDir.keySet().iterator().next();
-			if(byDir.get(dir).size() == numTypes) {
-				//All types present in this conduit have a connection the previous, can do passthrough
-				mixed = false;
-				passThrough = byDir.keySet().iterator().next();
-			}else
-				passThrough = null; //A type is missing a connection, fallback to mixed
-		}else if(byDir.size() == 2) {
-			//This could be a corner or a straight passthrough
-			final Direction dir = byDir.keySet().iterator().next();
-			if(byDir.get(dir).size() == numTypes && byDir.containsKey(dir.getOpposite()) && this.isPassthrough(byDir.get(dir), byDir.get(dir.getOpposite()))) {
-				//This is a straight passthrough
-				mixed = false;
-				passThrough = dir;
-			}else
-				passThrough = null; //Either a type is missing a connection or this is a corner, fallback to mixed
-		}else
-			passThrough = null; //This is a complicated joint, fallback to mixed
+		//Segments
+		parts.segments().values().forEach(segment -> {
+			final ConduitType type = segment.conduitType();
+			//Texture segments to their corresponding type
+			final BiFunction<Direction, String, String> texturer = (x, y) -> "#segment_"+type.getSerializedName();
+			this.addQuads(segment, texturer, builder);
+		});
 
-		if(mixed)
-			//mixed joint
-			this.parts.mixedJoint().addQuads(this.owner, builder, this.bakery, this.spriteGetter, this.modelTransform, this.modelLocation);
+		//Joints
+		final BooleanObjectPair<Direction> jointState = data.jointState();
+		if(jointState.leftBoolean())
+			this.addQuads(parts.mixedJoint(), builder);
 		else {
-			//unmixed joint, requires retexturing and rotation
-			final long count = data.types().count();
-
-			WrappedVanillaProxy joints = this.parts.joints()[(int) (count-1)];
-			//Types array, sorted to have consistent texturing
-			final ConduitType[] types = data.types().toArray(s -> new ConduitType[s]);
-			Arrays.sort(types, ConduitType::compareTo);
-			final BiFunction<Direction, String, String> texturer = (dir, text) -> {
-				//The joint model will be rotated to the passthrough direction
-				//so we retexture the "origin" faces, and only down if the passthrough is actually passing through
-				if(passThrough != null && (Direction.UP.equals(dir) || Direction.DOWN.equals(dir) && byDir.containsKey(passThrough.getOpposite())))
-					return "#connected";
-				for(int i = 1; i <= types.length; i++)
-					if(("#joint_"+i).equals(text)) {
-						final ConduitType type = types[i-1];
-						//Texture connected faces if they haven't been handled by passthrough
-						if(passThrough == null && data.hasConnection(type, dir))
-							return "#connected";
-						//Default unconnected texture
-						return "#unconnected_"+type.getSerializedName();
-					}
-				throw new IllegalStateException("Failed to retexture a face: "+text);
-			};
-			joints = joints.retexture(texturer);
-			ModelState transform = this.modelTransform;
-			if(passThrough != null && passThrough != Direction.UP)
-				transform = new ConduitModelTransform(transform, passThrough, PartType.JOINT);
-			joints.addQuads(this.owner, builder, this.bakery, this.spriteGetter, transform, this.modelLocation);
-
+			final Direction passThrough = jointState.right();
+			parts.joints().forEach(joint -> {
+				final ConduitType type = joint.conduitType();
+				final BiFunction<Direction, String, String> texturer = (faceDir, text) -> {
+					//The joint model will be rotated to the passthrough direction
+					//so we retexture the "origin" faces, and only down if the passthrough is actually passing through
+					if(passThrough != null && (Direction.UP.equals(faceDir) || Direction.DOWN.equals(faceDir) && data.hasConnection(type, passThrough.getOpposite())))
+						return "#connected";
+					//Texture connected faces if they haven't been handled by passthrough
+					if(passThrough == null && data.hasConnection(type, faceDir))
+						return "#connected";
+					//Default unconnected texture
+					return "#unconnected_"+type.getSerializedName();
+				};
+				this.addQuads(joint, texturer, builder);
+			});
 		}
-		//segments, requires retexturing and rotation
-		byDir.forEach((connDir, typeMap) -> {
-			WrappedVanillaProxy segments = this.parts.segments()[typeMap.size()-1];
-			final ConduitType[] types = typeMap.keySet().toArray(new ConduitType[typeMap.size()]);
-			Arrays.sort(types, ConduitType::compareTo);
-			final BiFunction<Direction, String, String> texturer = (faceDir, text) -> {
-				for(int i = 1; i <= types.length; i++)
-					if(("#segment_"+i).equals(text))
-						return "#segment_"+types[i-1].getSerializedName();
-				throw new IllegalStateException("Failed to retexture a face: "+text);
-			};
-			segments = segments.retexture(texturer);
-			ModelState transform = this.modelTransform;
-			if(connDir != Direction.UP)
-				transform = new ConduitModelTransform(transform, connDir, PartType.SEGMENT);
-			segments.addQuads(this.owner, builder, this.bakery, this.spriteGetter, transform, this.modelLocation);
-			if(typeMap.values().stream().map(Pair::getRight).anyMatch(ConnectionType.INVENTORY::equals))
-				this.parts.inventoryConnection().addQuads(this.owner, builder, this.bakery, this.spriteGetter, transform, this.modelLocation);
+
+		//Connections
+		parts.connections().values().forEach(part -> {
+			this.addQuads(part, builder);
 		});
 		return builder.build();
 	}
 
+	/*
 	private boolean isPassthrough(final Map<ConduitType, Pair<ConduitTier, ConnectionType>> first,
 			final Map<ConduitType, Pair<ConduitTier, ConnectionType>> second) {
 		return first.keySet().equals(second.keySet());
+	}*/
+
+	private WrappedVanillaProxy toModel(final ConduitPart part, final BiFunction<Direction, String, String> texturer) {
+		return this.parts.get(part.type()).offset(part.offset()).retexture(texturer);
+	}
+
+	private void addQuads(final ConduitPart part, final BiFunction<Direction, String, String> texturer, final IModelBuilder<?> builder) {
+		this.toModel(part, texturer).addQuads(this.owner, builder, this.bakery, this.spriteGetter, new ConduitModelTransform(this.modelTransform, part.rotation()), this.modelLocation);
+	}
+
+	private void addQuads(final ConduitPart part, final IModelBuilder<?> builder) {
+		this.addQuads(part, (dir, texture) -> texture, builder);
 	}
 
 	@Override

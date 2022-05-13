@@ -1,12 +1,13 @@
-package me.superckl.conduits;
+package me.superckl.conduits.conduit.part;
 
 import javax.annotation.Nullable;
 
 import lombok.RequiredArgsConstructor;
+import me.superckl.conduits.conduit.ConduitType;
 import net.minecraft.util.StringRepresentable;
 
 @RequiredArgsConstructor
-public enum PartType implements StringRepresentable{
+public enum ConduitPartType implements StringRepresentable{
 	JOINT("joint", true),
 	SEGMENT("segment", true),
 	CONNECTION("inventory_connection", false),

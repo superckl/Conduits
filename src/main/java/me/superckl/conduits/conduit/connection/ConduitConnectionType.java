@@ -1,14 +1,14 @@
-package me.superckl.conduits;
+package me.superckl.conduits.conduit.connection;
 
 import lombok.RequiredArgsConstructor;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.util.StringRepresentable;
 
 @RequiredArgsConstructor
-public enum ConduitType implements StringRepresentable{
+public enum ConduitConnectionType implements StringRepresentable{
 
-	ITEM("item"),
-	ENERGY("energy");
+	CONDUIT("conduit"),
+	INVENTORY("inventory");
 
 	private final String name;
 
@@ -20,5 +20,4 @@ public enum ConduitType implements StringRepresentable{
 	public StringTag tag() {
 		return StringTag.valueOf(this.name);
 	}
-
 }

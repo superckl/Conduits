@@ -5,11 +5,13 @@ import java.util.Map;
 
 import com.mojang.math.Vector3f;
 
-import me.superckl.conduits.ConduitType;
 import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.ModItems;
-import me.superckl.conduits.PartType;
+import me.superckl.conduits.conduit.ConduitShapeHelper;
+import me.superckl.conduits.conduit.ConduitShapeHelper.Boxf;
+import me.superckl.conduits.conduit.part.ConduitPartType;
+import me.superckl.conduits.conduit.ConduitType;
 import net.minecraft.core.Direction;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.resources.ResourceLocation;
@@ -35,35 +37,30 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 
 		final BlockModelProvider blocks = this.models();
 
-		if(2 != ConduitType.values().length)
-			throw new IllegalStateException("Number of types does not match number of segment models!");
-		final Vector3f offset1 = new Vector3f(2F, 0, 0);
-		final Vector3f offset2 = new Vector3f(-2F, 0, 0);
 		//JOINTS
 		//Faces are textured by the model loader
 		//Joint for one type
-		this.jointElement(blocks.getBuilder(PartType.JOINT.path(null)+"_1"), 1, Vector3f.ZERO);
+		this.jointElement(blocks.getBuilder(ConduitPartType.JOINT.path(null)), 1, Vector3f.ZERO);
 
 		//Joints for two types
-		this.jointElement(this.jointElement(blocks.getBuilder(PartType.JOINT.path(null)+"_2"), 1, offset1), 2, offset2);
+		//this.jointElement(this.jointElement(blocks.getBuilder(PartType.JOINT.path(null)+"_2"), 1, segmentOffsets2[0]), 2, segmentOffsets2[1]);
 
 		//SEGMENTS
 		//Faces are textures by the model loader
 		//Segments for one type
-		this.segmentElement(blocks.getBuilder(PartType.SEGMENT.path(null)+"_1"), 1, Vector3f.ZERO);
+		this.segmentElement(blocks.getBuilder(ConduitPartType.SEGMENT.path(null)), 1, Vector3f.ZERO);
 
 		//Segments for two types
-		this.segmentElement(this.segmentElement(blocks.getBuilder(PartType.SEGMENT.path(null)+"_2"),
-				1, offset1), 2, offset2);
+		//this.segmentElement(this.segmentElement(blocks.getBuilder(PartType.SEGMENT.path(null)+"_2"),
+		//		1, segmentOffsets2[0]), 2, segmentOffsets2[1]);
 
 		//MIXED JOINT
-		blocks.getBuilder(PartType.MIXED_JOINT.path(null)).element()
-		.from(4F, 4F, 4F).to(12F, 12F, 12F).allFaces((dir, face) -> face.texture("#mixed_joint")).end();
+		this.sizedElement(blocks.getBuilder(ConduitPartType.MIXED_JOINT.path(null)), ConduitShapeHelper.modelBox(ConduitPartType.MIXED_JOINT), Vector3f.ZERO)
+		.allFaces((dir, face) -> face.texture("#mixed_joint")).end();
 
 		//MACHINE CONNECTION
-		blocks.getBuilder(PartType.CONNECTION.path(null)).element()
-		.from(3F, 15.75F, 3F).to(13F, 16F, 13F).allFaces((dir, builder) -> builder.texture("#connection")).end().element()
-		.from(4.5F, 15.5F, 4.5F).to(11.5F, 15.75F, 11.5F)
+		this.sizedElement(this.sizedElement(blocks.getBuilder(ConduitPartType.CONNECTION.path(null)), ConduitShapeHelper.connectionBottomModelBox(), Vector3f.ZERO)
+				.allFaces((dir, builder) -> builder.texture("#connection")).end(), ConduitShapeHelper.connectionTopModelBox(), Vector3f.ZERO)
 		.face(Direction.NORTH).texture("#connection").end()
 		.face(Direction.SOUTH).texture("#connection").end()
 		.face(Direction.EAST).texture("#connection").end()
@@ -76,12 +73,12 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 		conduitBuilder.parent(this.models().getExistingFile(this.mcLoc("block")));
 		conduitBuilder.customLoader(ConduitModelLoaderBuilder::new);
 		conduitBuilder.texture("particle", this.mcLoc("block/stone"));//TODO temp particle texture
-		conduitBuilder.texture("mixed_joint", PartType.MIXED_JOINT.path(null));
-		conduitBuilder.texture("connection", PartType.MIXED_JOINT.path(null));
-		conduitBuilder.texture("connected", PartType.JOINT.path(null));
+		conduitBuilder.texture("mixed_joint", ConduitPartType.MIXED_JOINT.path(null));
+		conduitBuilder.texture("connection", ConduitPartType.MIXED_JOINT.path(null));
+		conduitBuilder.texture("connected", ConduitPartType.JOINT.path(null));
 		for(final ConduitType type:ConduitType.values()) {
-			conduitBuilder.texture("unconnected_"+type.getSerializedName(), PartType.JOINT.path(type));
-			conduitBuilder.texture("segment_"+type.getSerializedName(), PartType.SEGMENT.path(type));
+			conduitBuilder.texture("unconnected_"+type.getSerializedName(), ConduitPartType.JOINT.path(type));
+			conduitBuilder.texture("segment_"+type.getSerializedName(), ConduitPartType.SEGMENT.path(type));
 		}
 		final BlockModelBuilder.TransformsBuilder transforms = conduitBuilder.transforms();
 		transforms.transform(Perspective.GUI).rotation(30F, 225F, 0F).scale(0.75F).end();
@@ -99,7 +96,7 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 	}
 
 	private BlockModelBuilder segmentElement(final BlockModelBuilder builder, final int index, final Vector3f offset) {
-		return builder.element().from(7F+offset.x(), 9.5F+offset.y(), 7F+offset.z()).to(9F+offset.x(), 16F+offset.y(), 9F+offset.z())
+		return this.sizedElement(builder, ConduitShapeHelper.modelBox(ConduitPartType.SEGMENT), offset)
 				.face(Direction.NORTH).texture("#segment_"+index).uvs(0, 0, 13, 4).rotation(FaceRotation.CLOCKWISE_90).end()//is UV necessary?
 				.face(Direction.SOUTH).texture("#segment_"+index).uvs(0, 0, 13, 4).rotation(FaceRotation.CLOCKWISE_90).end()
 				.face(Direction.EAST).texture("#segment_"+index).uvs(0, 0, 13, 4).rotation(FaceRotation.CLOCKWISE_90).end()
@@ -108,8 +105,13 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 	}
 
 	private BlockModelBuilder jointElement(final BlockModelBuilder builder, final int index, final Vector3f offset) {
-		return builder.element().from(6.5F+offset.x(), 6.5F+offset.y(), 6.5F+offset.z()).to(9.5F+offset.x(), 9.5F+offset.y(), 9.5F+offset.z())
+		return this.sizedElement(builder, ConduitShapeHelper.modelBox(ConduitPartType.JOINT), offset)
 				.allFaces((dir, face) -> face.texture("#joint_"+index).uvs(0, 0, 16, 16)).end();
+	}
+
+	private BlockModelBuilder.ElementBuilder sizedElement(final BlockModelBuilder builder, final Boxf size, final Vector3f offset) {
+		return builder.element().from(size.minX()+offset.x(), size.minY()+offset.y(), size.minZ()+offset.z())
+				.to(size.maxX()+offset.x(), size.maxY()+offset.y(), size.maxZ()+offset.z());
 	}
 
 	public static class ConduitModelLoaderBuilder extends CustomLoaderBuilder<BlockModelBuilder>{

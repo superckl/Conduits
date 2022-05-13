@@ -9,7 +9,7 @@ import com.google.gson.JsonParser;
 
 import net.minecraft.server.packs.resources.Resource;
 
-public class ResourceHelper {
+public class Util {
 
 	/**
 	 * Parses a given resource into a Json element and closes the resource

@@ -11,9 +11,9 @@ import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
 
 import lombok.RequiredArgsConstructor;
-import me.superckl.conduits.ConduitParts;
 import me.superckl.conduits.Conduits;
-import me.superckl.conduits.util.ResourceHelper;
+import me.superckl.conduits.conduit.part.ConduitParts;
+import me.superckl.conduits.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -65,7 +65,7 @@ public class ConduitModel implements IModelGeometry<ConduitModel>{
 			final ConduitParts<WrappedVanillaProxy> parts = ConduitParts.from(path -> {
 				final ResourceLocation loc = new ResourceLocation(Conduits.MOD_ID, "models/"+path+".json");
 				try {
-					final JsonObject obj = ResourceHelper.toJson(this.manager.getResource(loc)).getAsJsonObject();
+					final JsonObject obj = Util.toJson(this.manager.getResource(loc)).getAsJsonObject();
 					return WrappedVanillaProxy.Loader.INSTANCE.read(deserializationContext, obj);
 				} catch(final IOException e) {
 					throw new IllegalStateException("Unable to load conduit model resource "+loc.toString(), e);
