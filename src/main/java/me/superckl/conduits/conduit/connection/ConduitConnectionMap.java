@@ -18,6 +18,7 @@ import com.mojang.math.Vector3f;
 
 import it.unimi.dsi.fastutil.booleans.BooleanObjectImmutablePair;
 import it.unimi.dsi.fastutil.booleans.BooleanObjectPair;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.superckl.conduits.conduit.ConduitShapeHelper;
 import me.superckl.conduits.conduit.ConduitTier;
 import me.superckl.conduits.conduit.ConduitType;
@@ -118,35 +119,11 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 		return base;
 	}
 
-	public ConfiguredConduit toParts(){
-		final var byDir = this.byDirection();
+	//Global cache for connection map -> configured conduit since the computation is expensive
+	private static final Map<ConduitConnectionMap, ConfiguredConduit> PARTS_CACHE = new Object2ObjectOpenHashMap<>(ConduitConnectionMap.states());
 
-		//Segments
-		final ListMultimap<Direction, ConduitPart> segments = MultimapBuilder.enumKeys(Direction.class).arrayListValues().build();
-		final Map<Direction, ConduitPart> connections = new EnumMap<>(Direction.class);
-		byDir.forEach((dir, map) -> {
-			//For each direction, add a segment for each type
-			final int numCon = map.size();
-			final var offsets = ConduitShapeHelper.segmentOffsets(numCon);
-			final var types = ConduitShapeHelper.sort(map.keySet());
-			for(int i = 0; i < numCon; i++)
-				segments.put(dir, new ConduitPart(ConduitPartType.SEGMENT, map.get(types[i]).getLeft(), types[i], offsets[i], ConduitShapeHelper.segmentRotation(dir)));
-			if(map.values().stream().map(Pair::getRight).anyMatch(ConduitConnectionType.INVENTORY::equals))
-				connections.put(dir, new ConduitPart(ConduitPartType.CONNECTION, null, null, Vector3f.ZERO, ConduitShapeHelper.segmentRotation(dir)));
-		});
-
-		final List<ConduitPart> joints = new ArrayList<>();
-		ConduitPart mixedJoint = null;
-		final BooleanObjectPair<Direction> jointState = this.jointState();
-		final var types = ConduitShapeHelper.sort(this.data.keySet());
-		if(jointState.leftBoolean())
-			mixedJoint = new ConduitPart(ConduitPartType.MIXED_JOINT, null, null, Vector3f.ZERO, Quaternion.ONE);
-		else {
-			final var offsets = ConduitShapeHelper.segmentOffsets(types.length);
-			for(int i = 0; i < types.length; i++)
-				joints.add(new ConduitPart(ConduitPartType.JOINT, this.data.get(types[i]).tier(), types[i], offsets[i], ConduitShapeHelper.segmentRotation(jointState.right())));
-		}
-		return new ConfiguredConduit(types, joints, mixedJoint, connections, segments);
+	public ConfiguredConduit getParts(){
+		return ConduitConnectionMap.PARTS_CACHE.computeIfAbsent(this, ConduitConnectionMap::toParts);
 	}
 
 	public BooleanObjectPair<Direction> jointState(){
@@ -181,6 +158,37 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 		}else
 			passThrough = null; //This is a complicated joint, fallback to mixed
 		return BooleanObjectImmutablePair.of(mixed, passThrough);
+	}
+
+	private static ConfiguredConduit toParts(final ConduitConnectionMap conMap) {
+		final var byDir = conMap.byDirection();
+
+		//Segments
+		final ListMultimap<Direction, ConduitPart> segments = MultimapBuilder.enumKeys(Direction.class).arrayListValues().build();
+		final Map<Direction, ConduitPart> connections = new EnumMap<>(Direction.class);
+		byDir.forEach((dir, map) -> {
+			//For each direction, add a segment for each type
+			final int numCon = map.size();
+			final var offsets = ConduitShapeHelper.segmentOffsets(numCon);
+			final var types = ConduitShapeHelper.sort(map.keySet());
+			for(int i = 0; i < numCon; i++)
+				segments.put(dir, new ConduitPart(ConduitPartType.SEGMENT, map.get(types[i]).getLeft(), types[i], offsets[i], ConduitShapeHelper.segmentRotation(dir)));
+			if(map.values().stream().map(Pair::getRight).anyMatch(ConduitConnectionType.INVENTORY::equals))
+				connections.put(dir, new ConduitPart(ConduitPartType.CONNECTION, null, null, Vector3f.ZERO, ConduitShapeHelper.segmentRotation(dir)));
+		});
+
+		final List<ConduitPart> joints = new ArrayList<>();
+		ConduitPart mixedJoint = null;
+		final BooleanObjectPair<Direction> jointState = conMap.jointState();
+		final var types = ConduitShapeHelper.sort(conMap.data.keySet());
+		if(jointState.leftBoolean())
+			mixedJoint = new ConduitPart(ConduitPartType.MIXED_JOINT, null, null, Vector3f.ZERO, Quaternion.ONE);
+		else {
+			final var offsets = ConduitShapeHelper.segmentOffsets(types.length);
+			for(int i = 0; i < types.length; i++)
+				joints.add(new ConduitPart(ConduitPartType.JOINT, conMap.data.get(types[i]).tier(), types[i], offsets[i], ConduitShapeHelper.segmentRotation(jointState.right())));
+		}
+		return new ConfiguredConduit(types, joints, mixedJoint, connections, segments);
 	}
 
 	public static ConduitConnectionMap make() {

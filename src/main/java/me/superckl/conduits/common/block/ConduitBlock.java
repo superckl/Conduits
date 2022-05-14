@@ -77,7 +77,6 @@ public class ConduitBlock extends Block implements EntityBlock, SimpleWaterlogge
 		pBuilder.add(BlockStateProperties.WATERLOGGED);
 	}
 
-
 	@SuppressWarnings("deprecation")
 	@Override
 	public void onRemove(final BlockState pState, final Level pLevel, final BlockPos pPos, final BlockState pNewState, final boolean pIsMoving) {
@@ -93,12 +92,13 @@ public class ConduitBlock extends Block implements EntityBlock, SimpleWaterlogge
 		super.onRemove(pState, pLevel, pPos, pNewState, pIsMoving);
 	}
 
+	//Global cache for connection map -> shape since the computation is expensive
 	private static final Map<ConduitConnectionMap, VoxelShape> SHAPE_CACHE = new Object2ObjectOpenHashMap<>(ConduitConnectionMap.states());
 
 	@Override
 	public VoxelShape getShape(final BlockState pState, final BlockGetter level, final BlockPos pPos, @Nullable final CollisionContext pContext) {
 		if(level.getBlockEntity(pPos) instanceof final ConduitBlockEntity conduit)
-			return ConduitBlock.SHAPE_CACHE.computeIfAbsent(conduit.getConnections(), connections -> connections.toParts().getShape());
+			return ConduitBlock.SHAPE_CACHE.computeIfAbsent(conduit.getConnections(), connections -> connections.getParts().getShape());
 		return Shapes.block();
 	}
 

@@ -71,7 +71,7 @@ public class ConduitBakedModel implements BakedModel{
 		final TextureAtlasSprite particle = this.spriteGetter.apply(this.owner.resolveTexture("particle"));
 		final IModelBuilder<?> builder = IModelBuilder.of(this.owner, this.overrides, particle);
 
-		final ConfiguredConduit parts = data.toParts();
+		final ConfiguredConduit parts = data.getParts();
 
 		//Segments
 		parts.segments().values().forEach(segment -> {

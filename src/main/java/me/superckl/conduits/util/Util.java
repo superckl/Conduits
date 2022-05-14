@@ -49,4 +49,8 @@ public class Util {
 		return new AABB(new Vec3(newBottom), new Vec3(newTop));
 	}
 
+	public static boolean containsInclusive(final AABB box, final Vec3 loc) {
+		return loc.x >= box.minX && loc.x <= box.maxX && loc.y >= box.minY && loc.y <= box.maxY && loc.z >= box.minZ && loc.z <= box.maxZ;
+	}
+
 }
