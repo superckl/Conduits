@@ -46,6 +46,8 @@ public class ConduitShapeHelper {
 
 	public static Vector3f[] segmentOffsets(final int numSegments){
 		switch(numSegments) {
+		case 0:
+			return new Vector3f[0];
 		case 1:
 			return new Vector3f[] {Vector3f.ZERO};
 		case 2:
