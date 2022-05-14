@@ -30,6 +30,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.client.IItemRenderProperties;
@@ -83,27 +84,31 @@ public class ConduitItem extends BlockItem{
 	public InteractionResult onItemUseFirst(final ItemStack stack, final UseOnContext context) {
 		if(context.getPlayer() != null && context.getPlayer().isShiftKeyDown())
 			return super.onItemUseFirst(stack, context);
-		final BlockEntity be = context.getLevel().getBlockEntity(context.getClickedPos());
-		if(be instanceof final ConduitBlockEntity conduit)
-			return conduit.trySetTier(this.type, this.tier).map(tier -> {
-				if(tier == this.tier)
-					return super.onItemUseFirst(stack, context);
-				if(context.getLevel().isClientSide)
-					return InteractionResult.sidedSuccess(context.getLevel().isClientSide);
-				final Player player = context.getPlayer();
-				final Item toDrop = ModItems.CONDUITS.get(this.type).get(tier).get();
-				if(player != null) {
-					if(!player.isCreative()) {
-						stack.shrink(1);
-						player.addItem(toDrop.getDefaultInstance());
-						player.level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, ((player.getRandom().nextFloat() - player.getRandom().nextFloat()) * 0.7F + 1.0F) * 2.0F);
-					}
-				}else {
-					stack.shrink(1);
-					context.getLevel().addFreshEntity(new ItemEntity(context.getLevel(), context.getClickLocation().x, context.getClickLocation().y, context.getClickLocation().z, toDrop.getDefaultInstance()));
-				}
+		final Level level = context.getLevel();
+		final BlockPos pos = context.getClickedPos();
+		final BlockEntity be = level.getBlockEntity(pos);
+		if(be instanceof final ConduitBlockEntity conduit) {
+			final ConduitTier tier = conduit.trySetTier(this.type, this.tier).orElse(null);
+			if(tier == this.tier)
+				return super.onItemUseFirst(stack, context);
+			level.playSound(context.getPlayer(), pos, this.getPlaceSound(level.getBlockState(pos), level, pos, context.getPlayer()), SoundSource.BLOCKS,
+					(SoundType.STONE.getVolume() + 1.0F) / 2.0F, SoundType.STONE.getPitch() * 0.8F);
+			if(tier == null || context.getLevel().isClientSide)
 				return InteractionResult.sidedSuccess(context.getLevel().isClientSide);
-			}).orElse(InteractionResult.sidedSuccess(context.getLevel().isClientSide));
+			final Player player = context.getPlayer();
+			final Item toDrop = ModItems.CONDUITS.get(this.type).get(tier).get();
+			if(player != null) {
+				if(!player.isCreative()) {
+					stack.shrink(1);
+					player.addItem(toDrop.getDefaultInstance());
+					player.level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, ((player.getRandom().nextFloat() - player.getRandom().nextFloat()) * 0.7F + 1.0F) * 2.0F);
+				}
+			}else {
+				stack.shrink(1);
+				context.getLevel().addFreshEntity(new ItemEntity(context.getLevel(), context.getClickLocation().x, context.getClickLocation().y, context.getClickLocation().z, toDrop.getDefaultInstance()));
+			}
+			return InteractionResult.sidedSuccess(context.getLevel().isClientSide);
+		}
 		return super.onItemUseFirst(stack, context);
 	}
 
