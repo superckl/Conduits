@@ -100,6 +100,10 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 		return changed;
 	}
 
+	public boolean removeConnections(final ConduitType type) {
+		return this.data.remove(type) != null;
+	}
+
 	public CompoundTag serialize() {
 		return NBTUtil.serializeMap(this.data, ConduitConnectionState::serialize);
 	}

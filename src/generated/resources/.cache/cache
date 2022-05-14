@@ -1,5 +1,5 @@
 a11fe3ed440b813c33d7073fc5cae313a768d3d7 assets/conduits/blockstates/conduit.json
-4fab3fb485515080b02e46a10f6552e384414ce5 assets/conduits/lang/en_us.json
+f33a109b8ef61ff47e01294047a7fc33d53968c6 assets/conduits/lang/en_us.json
 294e3b92bc8cd11c446f01c933e5874ecb0f3f3e assets/conduits/models/block/conduit.json
 cc8505c2322ec0a37554da64f36be1787f4b5aa7 assets/conduits/models/conduit/inventory_connection.json
 cf5ea3c1ca34ea290dee58dd941f8e0584a8f8c1 assets/conduits/models/conduit/joint.json
@@ -11,3 +11,4 @@ feee3d1109899648fbcfbb40345eab3c3038bec5 assets/conduits/models/conduit/segment.
 37b441dd4a5e4c5387ffb254eb86a73b4525d0eb assets/conduits/models/item/item_conduit_early.json
 37b441dd4a5e4c5387ffb254eb86a73b4525d0eb assets/conduits/models/item/item_conduit_late.json
 37b441dd4a5e4c5387ffb254eb86a73b4525d0eb assets/conduits/models/item/item_conduit_middle.json
+44fd4949d2a4f3ba917df594a3354716d2b54d7b assets/conduits/models/item/wrench.json

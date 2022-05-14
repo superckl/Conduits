@@ -4,6 +4,7 @@ import java.util.EnumMap;
 import java.util.Map;
 
 import me.superckl.conduits.common.item.ConduitItem;
+import me.superckl.conduits.common.item.WrenchItem;
 import me.superckl.conduits.conduit.ConduitTier;
 import me.superckl.conduits.conduit.ConduitType;
 import net.minecraft.world.item.Item;
@@ -16,6 +17,7 @@ public class ModItems {
 	public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, Conduits.MOD_ID);
 
 	public static final Map<ConduitType, Map<ConduitTier, RegistryObject<ConduitItem>>> CONDUITS = new EnumMap<>(ConduitType.class);
+	public static final RegistryObject<WrenchItem> WRENCH = ModItems.ITEMS.register("wrench", WrenchItem::new);
 
 	static {
 		for(final ConduitType type:ConduitType.values()) {

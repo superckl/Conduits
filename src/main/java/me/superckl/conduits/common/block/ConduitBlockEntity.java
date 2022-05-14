@@ -85,6 +85,13 @@ public class ConduitBlockEntity extends BlockEntity{
 		return Optional.ofNullable(prev);
 	}
 
+	public boolean removeType(final ConduitType type) {
+		final boolean changed = this.connections.removeConnections(type);
+		if(changed)
+			this.connectionChange();
+		return changed;
+	}
+
 	/**
 	 * Examines all directions to determine and establish (or remove) connections.
 	 */

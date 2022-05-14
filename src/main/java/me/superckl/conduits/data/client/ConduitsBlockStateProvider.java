@@ -93,6 +93,8 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 		this.itemModels().getBuilder(item.getRegistryName().getPath()).parent(conduitBuilder)
 				);
 
+		this.itemModels().singleTexture(ModItems.WRENCH.getId().getPath(), this.mcLoc("item/generated"), "layer0", this.modLoc("item/wrench"));
+
 	}
 
 	private BlockModelBuilder segmentElement(final BlockModelBuilder builder, final int index, final Vector3f offset) {
