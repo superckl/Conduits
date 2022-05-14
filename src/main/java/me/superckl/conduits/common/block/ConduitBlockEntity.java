@@ -109,19 +109,18 @@ public class ConduitBlockEntity extends BlockEntity{
 			return;
 		}
 		final BlockEntity be = this.level.getBlockEntity(this.worldPosition.relative(dir));
-		if(be instanceof final ConduitBlockEntity conduit)
-			this.connections.types().forEach(type -> {
+		this.connections.types().forEach(type -> {
+			if(be instanceof final ConduitBlockEntity conduit) {
 				final ConduitTier tier = this.connections.getTier(type);
-				if(conduit.hasType(type)) {
-					if(conduit.isTier(type, tier))
-						this.setConnection(type, dir, ConduitConnectionType.CONDUIT);
-					else
-						this.setConnection(type, dir, ConduitConnectionType.INVENTORY);
-				}else
+				if(conduit.hasType(type) && conduit.isTier(type, tier))
+					this.setConnection(type, dir, ConduitConnectionType.CONDUIT);
+				else
 					this.removeConnection(type, dir);
-			});
-		else
-			this.removeConnections(dir);
+			}else if(type.getConnectionHelper().canConnect(dir.getOpposite(), be))
+				this.setConnection(type, dir, ConduitConnectionType.INVENTORY);
+			else
+				this.removeConnection(type, dir);
+		});
 	}
 
 	private void setConnection(final ConduitType type, final Direction dir, final ConduitConnectionType con) {
