@@ -3,6 +3,7 @@ package me.superckl.conduits.data;
 import me.superckl.conduits.Conduits;
 import me.superckl.conduits.data.client.ConduitsBlockStateProvider;
 import me.superckl.conduits.data.client.ConduitsItemModelProvider;
+import me.superckl.conduits.data.client.ConduitsLanguageProvider;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
@@ -20,6 +21,7 @@ public final class ConduitsDataGen {
 		if(e.includeClient()) {
 			gen.addProvider(new ConduitsItemModelProvider(gen, fileHelper));
 			gen.addProvider(new ConduitsBlockStateProvider(gen, fileHelper));
+			gen.addProvider(new ConduitsLanguageProvider(gen));
 		}
 		if(e.includeServer()) {
 

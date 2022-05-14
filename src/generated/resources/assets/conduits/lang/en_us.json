@@ -1,0 +1,10 @@
+{
+  "block.conduits.conduit": "Conduit",
+  "item.conduits.conduit.energy.early": "Early Tier Energy Conduit",
+  "item.conduits.conduit.energy.late": "Late Tier Energy Conduit",
+  "item.conduits.conduit.energy.middle": "Middle Tier Energy Conduit",
+  "item.conduits.conduit.item.early": "Early Tier Item Conduit",
+  "item.conduits.conduit.item.late": "Late Tier Item Conduit",
+  "item.conduits.conduit.item.middle": "Middle Tier Item Conduit",
+  "itemGroup.conduits": "Conduits"
+}
