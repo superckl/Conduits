@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.mojang.math.Quaternion;
@@ -21,7 +23,7 @@ public class ConduitShapeHelper {
 
 	private static final VoxelShape SEGMENT = Shapes.box(7/16D, 9.5/16D, 7/16D, 9/16D, 16/16D, 9/16D);
 	private static final VoxelShape JOINT = Shapes.box(6.5/16D, 6.5/16D, 6.5/16D, 9.5/16D, 9.5/16D, 9.5/16D);
-	private static final VoxelShape MIXED_JOINT = Shapes.box(4/16D, 4/16D, 4/16D, 12/16D, 12/16D, 12/16D);
+	private static final VoxelShape MIXED_JOINT = Shapes.box(4.5/16D, 4.5/16D, 4.5/16D, 11.5/16D, 11.5/16D, 11.5/16D);
 	private static final VoxelShape CONNECTION_BOTTOM = Shapes.box(3/16D, 15.75/16D, 3/16D, 13/16D, 16/16D, 13/16D);
 	private static final VoxelShape CONNECTION_TOP = Shapes.box(4.5/16D, 15.5/16D, 4.5/16D, 11.5/16D, 15.75/16D, 11.5/16D);
 
@@ -44,17 +46,24 @@ public class ConduitShapeHelper {
 		return ConduitShapeHelper.toModelBox(ConduitShapeHelper.CONNECTION_BOTTOM.bounds());
 	}
 
-	public static Vector3f[] segmentOffsets(final int numSegments){
-		switch(numSegments) {
-		case 0:
-			return new Vector3f[0];
-		case 1:
-			return new Vector3f[] {Vector3f.ZERO};
-		case 2:
-			return new Vector3f[] {new Vector3f(2/16F, 0, 0), new Vector3f(-2/16F, 0, 0)};
-		default:
-			throw new IllegalArgumentException("Unsupported number of segments "+numSegments);
-		}
+	public static Vector3f[] segmentOffsets(final int numSegments, @Nullable final Direction dir){
+		final Vector3f[] offsets = switch (numSegments) {
+		case 0 -> new Vector3f[0];
+		case 1 -> new Vector3f[] {Vector3f.ZERO};
+		case 2 -> new Vector3f[] {new Vector3f(1.75F/16F, 0, 0), new Vector3f(-1.75F/16F, 0, 0)};
+		case 3 -> new Vector3f[] {new Vector3f(1.75F/16F, 0, -1.75F/16F), new Vector3f(-1.75F/16F, 0, -1.75F/16F), new Vector3f(0, 0, 1.75F/16F)};
+		default -> throw new IllegalArgumentException("Unsupported number of segments "+numSegments);
+		};
+		if(dir != null && !ConduitShapeHelper.isSegmentMasterDirection(dir))
+			for(final Vector3f offset:offsets)
+				offset.setZ(-offset.z());
+		return offsets;
+	}
+
+	public static boolean isSegmentMasterDirection(final Direction dir) {
+		//This is chosen to make the configurations look good.
+		//It's arbitrary and will work as long as one is chosen from each axis.
+		return dir == Direction.UP || dir == Direction.EAST || dir == Direction.NORTH;
 	}
 
 	public static VoxelShape getShape(final ConduitPartType type) {
@@ -69,27 +78,26 @@ public class ConduitShapeHelper {
 	public static Quaternion segmentRotation(final Direction facing) {
 		if(facing == null)
 			return Quaternion.ONE;
-		//These rotations are chosen to align conduits from adjacent blocks properly
-		switch(facing) {
-		case DOWN:
-			return Vector3f.XP.rotationDegrees(180.0F);
-		case UP:
-			return Quaternion.ONE;
-		case NORTH:
-			return Vector3f.XP.rotationDegrees(-90.0F);
-		case SOUTH:
-			return Vector3f.XP.rotationDegrees(90.0F);
-		case WEST:
-			final Quaternion counter = Vector3f.XP.rotationDegrees(90.0F);
-			counter.mul(Vector3f.ZP.rotationDegrees(90.0F));
-			return counter;
-		case EAST:
-			final Quaternion clockwise = Vector3f.XP.rotationDegrees(-90.0F);
-			clockwise.mul(Vector3f.ZP.rotationDegrees(-90.0F));
-			return clockwise;
-		default:
-			throw new IncompatibleClassChangeError();
+		//These rotations are chosen to preserve the x-alignment of the segments/joints
+		//Since it is impossible to preserve both x and y alignment, y-alignment is
+		//corrected for by reflecting the y-coordinate when calculating offsets
+		return switch(facing) {
+		case DOWN -> Vector3f.XP.rotationDegrees(180F);
+		case UP -> Quaternion.ONE;
+		case NORTH -> Vector3f.XP.rotationDegrees(-90F);
+		case SOUTH -> Vector3f.XP.rotationDegrees(90F);
+		case WEST -> {
+			final Quaternion counter = Vector3f.XP.rotationDegrees(90F);
+			counter.mul(Vector3f.ZP.rotationDegrees(90F));
+			yield counter;
 		}
+		case EAST -> {
+			final Quaternion clockwise = Vector3f.XP.rotationDegrees(-90F);
+			clockwise.mul(Vector3f.ZP.rotationDegrees(-90F));
+			yield clockwise;
+		}
+		default -> throw new IncompatibleClassChangeError();
+		};
 	}
 
 	public static boolean isPassthrough(final Map<ConduitType, Pair<ConduitTier, ConduitConnectionType>> first,

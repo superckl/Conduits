@@ -26,18 +26,13 @@ public record ConduitParts<T>(T joint, T segment, T inventoryConnection, T mixed
 	}*/
 
 	public T get(final ConduitPartType type) {
-		switch(type) {
-		case CONNECTION:
-			return this.inventoryConnection;
-		case JOINT:
-			return this.joint;
-		case MIXED_JOINT:
-			return this.mixedJoint;
-		case SEGMENT:
-			return this.segment;
-		default:
-			throw new IllegalArgumentException("No part for type "+type.getSerializedName());
-		}
+		return switch(type) {
+		case CONNECTION -> this.inventoryConnection;
+		case JOINT -> this.joint;
+		case MIXED_JOINT -> this.mixedJoint;
+		case SEGMENT -> this.segment;
+		default -> throw new IllegalArgumentException("No part for type "+type.getSerializedName());
+		};
 	}
 
 	public List<T> all(){

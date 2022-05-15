@@ -7,13 +7,15 @@ import me.superckl.conduits.conduit.connection.ConnectionHelper.CapabilityConnec
 import net.minecraft.nbt.StringTag;
 import net.minecraft.util.StringRepresentable;
 import net.minecraftforge.energy.CapabilityEnergy;
+import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.items.CapabilityItemHandler;
 
 @RequiredArgsConstructor
 public enum ConduitType implements StringRepresentable{
 
 	ITEM("item", CapabilityConnectionHelper.forCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)),
-	ENERGY("energy", CapabilityConnectionHelper.forCapability(CapabilityEnergy.ENERGY));
+	ENERGY("energy", CapabilityConnectionHelper.forCapability(CapabilityEnergy.ENERGY)),
+	FLUID("fluid", CapabilityConnectionHelper.forCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY));
 
 	private final String name;
 	@Getter

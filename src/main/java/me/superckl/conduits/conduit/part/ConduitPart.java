@@ -6,7 +6,6 @@ import java.util.Map;
 import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.Builder;
 import me.superckl.conduits.conduit.ConduitShapeHelper;
 import me.superckl.conduits.conduit.ConduitTier;
@@ -22,7 +21,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public record ConduitPart(ConduitPartType type, ConduitTier tier, ConduitType conduitType, Vector3f offset, Quaternion rotation) {
 
 	//Global cache for part -> shape since the computation may be expensive for a complicated joint
-	private static final Map<ConduitPart, VoxelShape> SHAPE_CACHE = new Object2ObjectOpenHashMap<>(ConduitConnectionMap.states());
+	private static final Map<ConduitPart, VoxelShape> SHAPE_CACHE = ConduitConnectionMap.newConduitCache(true);
 
 	public VoxelShape getShape() {
 		return ConduitPart.SHAPE_CACHE.computeIfAbsent(this, part -> {

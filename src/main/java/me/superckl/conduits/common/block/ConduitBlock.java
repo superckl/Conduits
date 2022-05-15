@@ -4,7 +4,6 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.ModItems;
 import me.superckl.conduits.common.item.ConduitItem;
@@ -93,10 +92,11 @@ public class ConduitBlock extends Block implements EntityBlock, SimpleWaterlogge
 	}
 
 	//Global cache for connection map -> shape since the computation is expensive
-	private static final Map<ConduitConnectionMap, VoxelShape> SHAPE_CACHE = new Object2ObjectOpenHashMap<>(ConduitConnectionMap.states());
+	private static final Map<ConduitConnectionMap, VoxelShape> SHAPE_CACHE = ConduitConnectionMap.newConduitCache(true);
 
 	@Override
 	public VoxelShape getShape(final BlockState pState, final BlockGetter level, final BlockPos pPos, @Nullable final CollisionContext pContext) {
+
 		if(level.getBlockEntity(pPos) instanceof final ConduitBlockEntity conduit)
 			return ConduitBlock.SHAPE_CACHE.computeIfAbsent(conduit.getConnections(), connections -> connections.getParts().getShape());
 		return Shapes.block();

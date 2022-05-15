@@ -10,7 +10,6 @@ import java.util.function.Function;
 import com.mojang.math.Vector3f;
 
 import it.unimi.dsi.fastutil.booleans.BooleanObjectPair;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitTier;
@@ -50,7 +49,7 @@ public class ConduitBakedModel implements BakedModel{
 	private final ItemOverrides overrides;
 	private final ResourceLocation modelLocation;
 
-	private final Map<ConduitConnectionMap, List<BakedQuad>> modelCache = new Object2ObjectOpenHashMap<>(ConduitConnectionMap.states());
+	private final Map<ConduitConnectionMap, List<BakedQuad>> modelCache = ConduitConnectionMap.newConduitCache(true);
 
 	@Override
 	public List<BakedQuad> getQuads(final BlockState pState, final Direction pSide, final Random pRand) {

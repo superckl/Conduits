@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -124,7 +125,7 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 	}
 
 	//Global cache for connection map -> configured conduit since the computation is expensive
-	private static final Map<ConduitConnectionMap, ConfiguredConduit> PARTS_CACHE = new Object2ObjectOpenHashMap<>(ConduitConnectionMap.states());
+	private static final Map<ConduitConnectionMap, ConfiguredConduit> PARTS_CACHE = ConduitConnectionMap.newConduitCache(true);
 
 	public ConfiguredConduit getParts(){
 		return ConduitConnectionMap.PARTS_CACHE.computeIfAbsent(this, ConduitConnectionMap::toParts);
@@ -173,7 +174,7 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 		byDir.forEach((dir, map) -> {
 			//For each direction, add a segment for each type
 			final int numCon = map.size();
-			final var offsets = ConduitShapeHelper.segmentOffsets(numCon);
+			final var offsets = ConduitShapeHelper.segmentOffsets(numCon, dir);
 			final var types = ConduitShapeHelper.sort(map.keySet());
 			for(int i = 0; i < numCon; i++)
 				segments.put(dir, new ConduitPart(ConduitPartType.SEGMENT, map.get(types[i]).getLeft(), types[i], offsets[i], ConduitShapeHelper.segmentRotation(dir)));
@@ -188,7 +189,7 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 		if(jointState.leftBoolean())
 			mixedJoint = new ConduitPart(ConduitPartType.MIXED_JOINT, null, null, Vector3f.ZERO, Quaternion.ONE);
 		else {
-			final var offsets = ConduitShapeHelper.segmentOffsets(types.length);
+			final var offsets = ConduitShapeHelper.segmentOffsets(types.length, jointState.right());
 			for(int i = 0; i < types.length; i++)
 				joints.add(new ConduitPart(ConduitPartType.JOINT, conMap.data.get(types[i]).tier(), types[i], offsets[i], ConduitShapeHelper.segmentRotation(jointState.right())));
 		}
@@ -201,6 +202,11 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 
 	public static int states() {
 		return IntMath.pow(ConduitConnectionState.states()+1, ConduitType.values().length);
+	}
+
+	public static <K, V> Map<K, V> newConduitCache(final boolean threadSafe){
+		final int capacity = 2^16;
+		return threadSafe ? new ConcurrentHashMap<>(capacity) : new Object2ObjectOpenHashMap<>(capacity);
 	}
 
 }
