@@ -79,6 +79,11 @@ public class WrappedVanillaProxy implements ISimpleModelGeometry<WrappedVanillaP
 		return new WrappedVanillaProxy(elements);
 	}
 
+	public WrappedVanillaProxy size(final Vector3f from, final Vector3f to) {
+		final List<BlockElement> elements = this.elements.stream().map(el -> new BlockElement(from, to, el.faces, el.rotation, el.shade)).collect(Collectors.toList());
+		return new WrappedVanillaProxy(elements);
+	}
+
 	public static class Loader implements IModelLoader<WrappedVanillaProxy>{
 
 		public static final Loader INSTANCE = new Loader();

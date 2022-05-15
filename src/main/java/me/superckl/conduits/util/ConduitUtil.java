@@ -9,11 +9,12 @@ import com.google.gson.JsonParser;
 import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
 
+import it.unimi.dsi.fastutil.floats.FloatFloatPair;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-public class Util {
+public class ConduitUtil {
 
 	/**
 	 * Parses a given resource into a Json element and closes the resource
@@ -51,6 +52,11 @@ public class Util {
 
 	public static boolean containsInclusive(final AABB box, final Vec3 loc) {
 		return loc.x >= box.minX && loc.x <= box.maxX && loc.y >= box.minY && loc.y <= box.maxY && loc.z >= box.minZ && loc.z <= box.maxZ;
+	}
+
+	public static FloatFloatPair max(final FloatFloatPair pair1, final FloatFloatPair pair2) {
+		return FloatFloatPair.of(Math.max(pair1.firstFloat(), pair2.firstFloat()),
+				Math.max(pair1.secondFloat(), pair2.secondFloat()));
 	}
 
 }

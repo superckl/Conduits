@@ -12,6 +12,8 @@ import com.mojang.math.Vector3f;
 import it.unimi.dsi.fastutil.booleans.BooleanObjectPair;
 import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
+import me.superckl.conduits.conduit.ConduitShapeHelper;
+import me.superckl.conduits.conduit.ConduitShapeHelper.Boxf;
 import me.superckl.conduits.conduit.ConduitTier;
 import me.superckl.conduits.conduit.ConduitType;
 import me.superckl.conduits.conduit.ConfiguredConduit;
@@ -113,7 +115,12 @@ public class ConduitBakedModel implements BakedModel{
 	private WrappedVanillaProxy toModel(final ConduitPart part, final BiFunction<Direction, String, String> texturer) {
 		final Vector3f offset = part.offset().copy();
 		offset.mul(16);
-		return this.parts.get(part.type()).offset(offset).retexture(texturer);
+		WrappedVanillaProxy model = this.parts.get(part.type());
+		if(part.shape() != null) {
+			final Boxf size = ConduitShapeHelper.toModelBox(part.shape());
+			model = model.size(size.lowerCorner(), size.upperCorner());
+		}
+		return model.offset(offset).retexture(texturer);
 	}
 
 	private void addQuads(final ConduitPart part, final BiFunction<Direction, String, String> texturer, final IModelBuilder<?> builder) {

@@ -1,8 +1,10 @@
 package me.superckl.conduits.conduit;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -11,8 +13,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
 
+import it.unimi.dsi.fastutil.floats.FloatFloatPair;
 import me.superckl.conduits.conduit.connection.ConduitConnectionType;
 import me.superckl.conduits.conduit.part.ConduitPartType;
+import me.superckl.conduits.util.ConduitUtil;
 import net.minecraft.Util;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.AABB;
@@ -105,10 +109,54 @@ public class ConduitShapeHelper {
 		return first.keySet().equals(second.keySet());
 	}
 
+	public static AABB boundMixedJoint(final Map<Direction, Integer> connections) {
+		final Map<Direction, FloatFloatPair> bounds = connections.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+				entry -> ConduitShapeHelper.boundJoint(entry.getValue()),
+				ConduitUtil::max, () -> new EnumMap<>(Direction.class)));
+		final FloatFloatPair one = ConduitShapeHelper.boundJoint(1);
+
+		final FloatFloatPair x = bounds.keySet().stream().filter(Direction.Axis.X::test).map(bounds::get)
+				.reduce(ConduitUtil::max).orElse(one);
+		final FloatFloatPair y = bounds.keySet().stream().filter(Direction.Axis.Y::test).map(bounds::get)
+				.reduce(ConduitUtil::max).orElse(one);
+		final FloatFloatPair z = bounds.keySet().stream().filter(Direction.Axis.Z::test).map(bounds::get)
+				.reduce(ConduitUtil::max).orElse(one);
+		//x size controlled by y and z face widths
+		final float xBound = Math.max(y.firstFloat(), z.firstFloat());
+		//y size controlled by x and z face heights
+		final float yBound = Math.max(x.secondFloat(), z.secondFloat());
+		//z size controled by x face width and y face height
+		final float zBound = Math.max(x.firstFloat(), y.secondFloat());
+
+		return new AABB(0.5-xBound/2, 0.5-yBound/2, 0.5-zBound/2, 0.5+xBound/2, 0.5+yBound/2, 0.5+zBound/2)
+				.inflate(1/32D);
+	}
+
+	public static FloatFloatPair boundJoint(final int numConnections) {
+		if(numConnections == 0)
+			return FloatFloatPair.of(0, 0);
+		final Vector3f[] offsets = ConduitShapeHelper.segmentOffsets(numConnections, null);
+		final double maxX = Arrays.stream(offsets).mapToDouble(Vector3f::x).max().orElse(0);
+		final double minX = Arrays.stream(offsets).mapToDouble(Vector3f::x).min().orElse(0);
+		final double maxZ = Arrays.stream(offsets).mapToDouble(Vector3f::z).max().orElse(0);
+		final double minZ = Arrays.stream(offsets).mapToDouble(Vector3f::z).min().orElse(0);
+		final float conduitSize = 2/16F;
+		return FloatFloatPair.of((float) (maxX-minX)+conduitSize, (float) (maxZ-minZ)+conduitSize);
+	}
+
 	public static ConduitType[] sort(final Collection<ConduitType> types) {
 		return types.stream().sorted(ConduitType::compareTo).toArray(ConduitType[]::new);
 	}
 
-	public static record Boxf(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {}
+	public static record Boxf(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+
+		public Vector3f lowerCorner() {
+			return new Vector3f(this.minX, this.minY, this.minZ);
+		}
+
+		public Vector3f upperCorner() {
+			return new Vector3f(this.maxX, this.maxY, this.maxZ);
+		}
+	}
 
 }
