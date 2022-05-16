@@ -1,5 +1,9 @@
 {
   "block.conduits.conduit": "Conduit",
+  "conduits.command.network.conduit": "Examing conduit at %s",
+  "conduits.command.network.none": "No conduit network for type %s",
+  "conduits.command.network.type": "Conduit network for type %s: %s",
+  "conduits.command.type.none": "Conduit has no types!",
   "item.conduits.conduit.energy.early": "Early Tier Energy Conduit",
   "item.conduits.conduit.energy.late": "Late Tier Energy Conduit",
   "item.conduits.conduit.energy.middle": "Middle Tier Energy Conduit",

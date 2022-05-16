@@ -18,6 +18,11 @@ public class ConduitsLanguageProvider extends LanguageProvider{
 	protected void addTranslations() {
 		this.add("itemGroup.conduits", "Conduits");
 
+		this.add("conduits.command.network.conduit", "Examing conduit at %s");
+		this.add("conduits.command.type.none", "Conduit has no types!");
+		this.add("conduits.command.network.type", "Conduit network for type %s: %s");
+		this.add("conduits.command.network.none", "No conduit network for type %s");
+
 		this.addBlock(ModBlocks.CONDUIT_BLOCK, "Conduit");
 
 		this.addItem(ModItems.CONDUITS.get(ConduitType.ENERGY).get(ConduitTier.EARLY), "Early Tier Energy Conduit");

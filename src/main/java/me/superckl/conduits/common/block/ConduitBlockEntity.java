@@ -1,14 +1,20 @@
 package me.superckl.conduits.common.block;
 
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import lombok.Getter;
+import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.common.item.ConduitItem;
 import me.superckl.conduits.conduit.ConduitTier;
 import me.superckl.conduits.conduit.ConduitType;
 import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
 import me.superckl.conduits.conduit.connection.ConduitConnectionType;
+import me.superckl.conduits.conduit.network.ConduitNetwork;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -29,6 +35,7 @@ public class ConduitBlockEntity extends BlockEntity{
 
 	@Getter
 	private final ConduitConnectionMap connections = ConduitConnectionMap.make();
+	private final Map<ConduitType, ConduitNetwork> networks = new EnumMap<>(ConduitType.class);
 
 	public ConduitBlockEntity(final BlockPos pWorldPosition, final BlockState pBlockState) {
 		super(ModBlocks.CONDUIT_ENTITY.get(), pWorldPosition, pBlockState);
@@ -43,6 +50,8 @@ public class ConduitBlockEntity extends BlockEntity{
 		this.connections.setTier(placer.getType(), placer.getTier());
 		this.discoverNeighbors();
 		this.connectionChange();
+		ConduitNetwork.mergeOrEstablish(this);
+		this.networks.values().forEach(network -> Conduits.LOG.info(network));
 	}
 
 	public void onNeighborChanged(final Direction dir, final Block block) {
@@ -65,6 +74,14 @@ public class ConduitBlockEntity extends BlockEntity{
 
 	public ConduitTier getTier(final ConduitType type) {
 		return this.connections.getTier(type);
+	}
+
+	public Optional<ConduitNetwork> getNetwork(final ConduitType type) {
+		return Optional.ofNullable(this.networks.get(type));
+	}
+
+	public ConduitNetwork setNetwork(final ConduitType type, final ConduitNetwork network) {
+		return this.networks.put(type, network);
 	}
 
 	/**
@@ -129,6 +146,19 @@ public class ConduitBlockEntity extends BlockEntity{
 		});
 	}
 
+	public Collection<ConduitBlockEntity> getConnectedConduits(final ConduitType type){
+		return this.connections.getConnections(type).entrySet().stream()
+				.filter(entry -> entry.getValue() == ConduitConnectionType.CONDUIT).map(Map.Entry::getKey)
+				.map(this::getNeighborConduit).collect(Collectors.toList());
+	}
+
+	private ConduitBlockEntity getNeighborConduit(final Direction dir) {
+		final BlockPos pos = this.worldPosition.relative(dir);
+		if(!this.level.isLoaded(pos))
+			return null;
+		return this.level.getBlockEntity(pos, ModBlocks.CONDUIT_ENTITY.get()).orElse(null);
+	}
+
 	private void setConnection(final ConduitType type, final Direction dir, final ConduitConnectionType con) {
 		if(this.connections.setConnection(type, dir, con))
 			this.connectionChange();
@@ -148,10 +178,37 @@ public class ConduitBlockEntity extends BlockEntity{
 		this.setChanged();
 		this.sendUpdate();
 		this.requestModelDataUpdate();
+
+		this.notifyNetworks();
+	}
+
+	private void notifyNetworks() {
+		if(!this.level.isClientSide)
+			this.connections.types().forEach(type -> this.networks.computeIfAbsent(type,
+					x -> ConduitNetwork.establish(this, x)).connectionChange(this));
 	}
 
 	private void sendUpdate() {
 		this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), Block.UPDATE_CLIENTS);
+	}
+
+	@Override
+	public void setRemoved() {
+		this.networks.values().forEach(network -> network.removed(this));
+		this.networks.clear();
+		super.setRemoved();
+	}
+
+	@Override
+	public void clearRemoved() {
+		super.clearRemoved();
+		this.notifyNetworks();
+	}
+
+	@Override
+	public void onLoad() {
+		super.onLoad();
+		this.notifyNetworks();
 	}
 
 	@Override

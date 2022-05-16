@@ -1,6 +1,8 @@
 package me.superckl.conduits.util;
 
 import java.io.InputStreamReader;
+import java.util.Collection;
+import java.util.Iterator;
 
 import org.apache.commons.io.IOUtils;
 
@@ -57,6 +59,21 @@ public class ConduitUtil {
 	public static FloatFloatPair max(final FloatFloatPair pair1, final FloatFloatPair pair2) {
 		return FloatFloatPair.of(Math.max(pair1.firstFloat(), pair2.firstFloat()),
 				Math.max(pair1.secondFloat(), pair2.secondFloat()));
+	}
+
+	public static <T> T removeOne(final Collection<T> collection){
+		if(collection.isEmpty())
+			throw new IllegalArgumentException("Cannot remove element from empty collection!");
+		final Iterator<T> it = collection.iterator();
+		final T el = it.next();
+		it.remove();
+		return el;
+	}
+
+	public static <T> T getOne(final Collection<T> collection){
+		if(collection.isEmpty())
+			throw new IllegalArgumentException("Cannot remove element from empty collection!");
+		return collection.iterator().next();
 	}
 
 }
