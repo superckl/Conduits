@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
-import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.common.item.ConduitItem;
 import me.superckl.conduits.conduit.ConduitTier;
@@ -51,7 +50,6 @@ public class ConduitBlockEntity extends BlockEntity{
 		this.discoverNeighbors();
 		this.connectionChange();
 		ConduitNetwork.mergeOrEstablish(this);
-		this.networks.values().forEach(network -> Conduits.LOG.info(network));
 	}
 
 	public void onNeighborChanged(final Direction dir, final Block block) {

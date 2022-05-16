@@ -2,6 +2,7 @@ package me.superckl.conduits.conduit.network;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -9,10 +10,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.MutableGraph;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitType;
 import me.superckl.conduits.conduit.connection.ConduitConnectionType;
@@ -24,23 +27,19 @@ public class ConduitNetwork {
 
 	private final Level level;
 	private final ConduitType type;
-	private final Map<BlockPos, ConduitBlockEntity> conduits;
-	private final MutableGraph<BlockPos> connectionGraph;
+	private final ConduitNetworkGraph graph;
 
 	private final List<ConduitBlockEntity> changedBEs = new ArrayList<>();
 
-	private boolean invalid = false;
-
 	public ConduitNetwork(final Level level, final ConduitType type) {
-		this(level, type, new Object2ObjectOpenHashMap<>(), GraphBuilder.undirected().allowsSelfLoops(false).build());
+		this(level, type, new ConduitNetworkGraph(type));
 	}
 
-	private ConduitNetwork(final Level level, final ConduitType type, final Map<BlockPos, ConduitBlockEntity> conduits,
-			final MutableGraph<BlockPos> connectionGraph) {
+	private ConduitNetwork(final Level level, final ConduitType type, final ConduitNetworkGraph graph) {
+
 		this.level = level;
 		this.type = type;
-		this.conduits = conduits;
-		this.connectionGraph = connectionGraph;
+		this.graph = graph;
 		if(!level.isClientSide)
 			this.level.getCapability(NetworkTicker.CAPABILITY).ifPresent(ticker -> ticker.add(this));
 	}
@@ -53,9 +52,7 @@ public class ConduitNetwork {
 	 */
 	private ConduitNetwork accept(final ConduitBlockEntity conduit, final boolean connectionChange) {
 		final BlockPos pos = conduit.getBlockPos();
-		this.conduits.put(pos, conduit);
-		this.connectionGraph.removeNode(pos);
-		this.connectionGraph.addNode(pos);
+		this.graph.addNode(pos, conduit);
 		conduit.setNetwork(this.type, this);
 		if(connectionChange)
 			this.changedBEs.add(conduit);
@@ -73,9 +70,9 @@ public class ConduitNetwork {
 		if(this.type != other.type)
 			throw new UnsupportedOperationException(String.format("Cannot merge networks with differing types! %s, %s", this.type, other.type));
 		//Claim the other network's conduits
-		other.conduits.values().forEach(x -> this.accept(x, false));
+		other.graph.conduits().forEach(x -> this.accept(x, false));
 		//Copy over it's connection graph for the claimed conduits
-		GraphUtil.merge(this.connectionGraph, other.connectionGraph);
+		this.graph.mergeConnections(other.graph);
 		//Copy over any changes that the other network had pending
 		this.changedBEs.addAll(other.changedBEs);
 		//invalidate the other network
@@ -89,9 +86,8 @@ public class ConduitNetwork {
 	 * if used afterwards.
 	 */
 	private void invalidate() {
-		this.invalid = true;
 		this.changedBEs.clear();
-		this.conduits.clear();
+		this.graph.invalidate();
 		this.level.getCapability(NetworkTicker.CAPABILITY).ifPresent(ticker -> ticker.remove(this));
 	}
 
@@ -103,19 +99,9 @@ public class ConduitNetwork {
 	private static ConduitNetwork mergeSmaller(final ConduitNetwork network1, final ConduitNetwork network2) {
 		if(network1 == network2)
 			return network1;
-		if(network1.conduits.size() > network2.conduits.size())
+		if(network1.graph.size() > network2.graph.size())
 			return network1.merge(network2);
 		return network2.merge(network1);
-	}
-
-	private ConduitNetwork putConnections(final ConduitBlockEntity conduit) {
-		final BlockPos pos = conduit.getBlockPos();
-		this.connectionGraph.addNode(pos);
-		conduit.getConnections().getConnections(this.type).forEach((dir, connType) -> {
-			if(connType == ConduitConnectionType.CONDUIT)
-				this.connectionGraph.putEdge(pos, pos.relative(dir));
-		});
-		return this;
 	}
 
 	@SuppressWarnings("resource")
@@ -126,17 +112,14 @@ public class ConduitNetwork {
 		//the neighboring conduit has determined its state and declared itself to the network
 		//The network changing must be delayed until it next ticks
 		this.changedBEs.add(conduit);
-		//this.putConnections(conduit);
-		//this.mergeConnected(conduit).splitDisconnected();
 	}
 
 	@SuppressWarnings("resource")
 	public void removed(final ConduitBlockEntity conduit) {
 		if(conduit.getLevel().isClientSide)
 			return;
-		this.conduits.remove(conduit.getBlockPos());
-		this.connectionGraph.removeNode(conduit.getBlockPos());
-		if(this.conduits.isEmpty())
+		this.graph.removeNode(conduit.getBlockPos());
+		if(this.graph.isEmpty())
 			this.invalidate();
 		else
 			this.splitDisconnected();
@@ -144,34 +127,24 @@ public class ConduitNetwork {
 
 	private ConduitNetwork mergeConnected(final ConduitBlockEntity conduit) {
 		final Collection<ConduitBlockEntity> connected = conduit.getConnectedConduits(this.type);
-		final ConduitNetwork merged = connected.stream().map(con -> ConduitNetwork.getOrEstablish(this.type, con))
-				.reduce(ConduitNetwork::mergeSmaller).orElse(this);
-		return ConduitNetwork.mergeSmaller(this, merged);
+		final List<ConduitNetwork> others = connected.stream().map(con -> ConduitNetwork.getOrEstablish(this.type, con))
+				.distinct().collect(Collectors.toCollection(ArrayList::new));
+		if(!others.contains(this))
+			others.add(this);
+		return others.stream().reduce(ConduitNetwork::mergeSmaller).orElse(this);
 	}
 
 	private List<ConduitNetwork> splitDisconnected() {
-		final List<Set<BlockPos>> fills = GraphUtil.floodFill(this.connectionGraph);
-		return fills.stream().map(nodes -> {
-			final Map<BlockPos, ConduitBlockEntity> conduits = nodes.stream().collect(Collectors.toMap(Function.identity(), this.conduits::get));
-			final MutableGraph<BlockPos> graph = GraphBuilder.undirected().allowsSelfLoops(false).build();
-			nodes.forEach(pos -> {
-				graph.addNode(pos);
-				this.connectionGraph.incidentEdges(pos).forEach(graph::putEdge);
-			});
-			final ConduitNetwork network = new ConduitNetwork(this.level, this.type, conduits, graph);
-			conduits.values().forEach(x -> x.setNetwork(this.type, network));
-			network.verifyState();
+		if(this.graph.isConnected())
+			return ImmutableList.of(this);
+		final List<ConduitNetwork> split = this.graph.splitDisconnected().stream().map(graph -> {
+			final ConduitNetwork network = new ConduitNetwork(this.level, this.type, graph);
+			//Set the network for all the conduits split off into the new network
+			network.graph.conduits().forEach(x -> x.setNetwork(this.type, network));
 			return network;
 		}).collect(Collectors.toList());
-	}
-
-	private void verifyState() {
-		if(!this.conduits.keySet().equals(this.connectionGraph.nodes()))
-			throw new IllegalStateException("Conduit map keys does not match graph nodes!");
-		if(!GraphUtil.isConnected(this.connectionGraph))
-			throw new IllegalStateException("Network graph is disconnected!");
-		if(!this.conduits.values().stream().allMatch(conduit -> conduit.getNetwork(this.type).orElseThrow() == this))
-			throw new IllegalStateException("Conduit-Network mapping mismatch!");
+		this.invalidate();
+		return split;
 	}
 
 	private static ConduitNetwork getOrEstablish(final ConduitType type, final ConduitBlockEntity conduit) {
@@ -197,22 +170,33 @@ public class ConduitNetwork {
 	public void rescan() {
 		if(this.changedBEs.isEmpty())
 			return;
-		//Merging a network with pending changes will cause add the pending changes to this network.
+		//NOTE: This is quite a delicate operation with many joins/splits occuring in a given rescan
+		//It's very easy to mistakingly use an invalidated network or to loose some connectivity data
+
+		//Merging a network with pending changes may add the pending changes to this network.
 		//Thus, we iterate until all changes have been taken care of.
 		while(!this.changedBEs.isEmpty()) {
 			//Scanning may cause the network to modify the changed BEs list, so we copy it and then remove
 			//what was already there
 			final List<ConduitBlockEntity> copy = new ArrayList<>(this.changedBEs);
-			copy.stream().filter(Predicates.not(ConduitBlockEntity::isRemoved))
-			.filter(conduit -> this.conduits.containsKey(conduit.getBlockPos())).forEach(conduit -> {
-				ConduitNetwork.getOrEstablish(this.type, conduit).putConnections(conduit).mergeConnected(conduit).splitDisconnected();
+			//We do not use THIS network here, the merging and splitting that can happen
+			//might invalidate this network. Instead we get the network the conduit belongs to
+			copy.stream().distinct().filter(Predicates.not(ConduitBlockEntity::isRemoved))
+			.filter(conduit -> ConduitNetwork.getOrEstablish(this.type, conduit).graph.hasNode(conduit.getBlockPos())).forEach(conduit -> {
+				final ConduitNetwork network = ConduitNetwork.getOrEstablish(this.type, conduit);
+				//Let the graph make the proper changes
+				network.graph.putConnections(conduit);
+				//If this network was split off from this one, make sure it doesn't have to recheck this conduit later
+				network.changedBEs.remove(conduit);
+				//Check for newly merged or disconnected networks
+				network.mergeConnected(conduit).splitDisconnected();
 			});
 			this.changedBEs.removeAll(copy);
 		}
 	}
 
 	public void tick() {
-		if(this.invalid)
+		if(this.graph.isInvalid())
 			return;
 		this.rescan();
 	}
@@ -220,9 +204,121 @@ public class ConduitNetwork {
 	@Override
 	public String toString() {
 		return new StringBuilder("ConduitNetwork[Type: ").append(this.type.getSerializedName())
-				.append(", Conduit Positions: ").append(this.conduits.keySet())
-				.append(", Graph Nodes: ").append(this.connectionGraph.nodes())
-				.append(", Graph Edges: ").append(this.connectionGraph.edges()).append("]").toString();
+				.append(", Graph: ").append(this.graph).append("]").toString();
+	}
+
+	/**
+	 * Helper class that enforces data validity. This includes:
+	 * 1. The connection graph and conduit map always contain the same block positions
+	 */
+	@RequiredArgsConstructor
+	private static class ConduitNetworkGraph{
+
+		private final ConduitType type;
+		private final Map<BlockPos, ConduitBlockEntity> conduits;
+		private final MutableGraph<BlockPos> connectionGraph;
+		private boolean invalid = false;
+
+		public ConduitNetworkGraph(final ConduitType type) {
+			this(type, new Object2ObjectOpenHashMap<>(), GraphBuilder.undirected().allowsSelfLoops(false).build());
+		}
+
+		public boolean removeNode(final BlockPos pos) {
+			this.checkInvalid();
+			this.conduits.remove(pos);
+			return this.connectionGraph.removeNode(pos);
+		}
+
+		public boolean addNode(final BlockPos pos, final ConduitBlockEntity conduit) {
+			this.checkInvalid();
+			this.conduits.put(pos, conduit);
+			return this.connectionGraph.addNode(pos);
+		}
+
+		public boolean hasNode(final BlockPos pos) {
+			this.checkInvalid();
+			return this.conduits.containsKey(pos);
+		}
+
+		public Collection<ConduitBlockEntity> conduits(){
+			this.checkInvalid();
+			return Collections.unmodifiableCollection(this.conduits.values());
+		}
+
+		public void mergeConnections(final ConduitNetworkGraph other) {
+			this.checkInvalid();
+			final Set<BlockPos> nodes = this.connectionGraph.nodes();
+			if(!nodes.containsAll(other.connectionGraph.nodes()))
+				throw new IllegalArgumentException("Cannot merge graph that contains nodes this graph does not contain!");
+			GraphUtil.merge(this.connectionGraph, other.connectionGraph);
+		}
+
+		public void putConnections(final ConduitBlockEntity conduit) {
+			this.checkInvalid();
+			final BlockPos pos = conduit.getBlockPos();
+			if(!this.conduits.containsKey(pos) || this.conduits.get(pos) != conduit)
+				throw new IllegalArgumentException("Conduit is not a member of this network!");
+			//Clear the existing edges
+			this.connectionGraph.removeNode(pos);
+			this.connectionGraph.addNode(pos);
+			conduit.getConnections().getConnections(this.type).forEach((dir, connType) -> {
+				if(connType == ConduitConnectionType.CONDUIT)
+					this.connectionGraph.putEdge(pos, pos.relative(dir));
+			});
+		}
+
+		public boolean isConnected() {
+			return GraphUtil.isConnected(this.connectionGraph);
+		}
+
+		public List<ConduitNetworkGraph> splitDisconnected() {
+			this.checkInvalid();
+			final List<Set<BlockPos>> fills = GraphUtil.floodFill(this.connectionGraph);
+			return fills.stream().map(nodes -> {
+				final Map<BlockPos, ConduitBlockEntity> conduits = nodes.stream()
+						.collect(Collectors.toMap(Function.identity(), this.conduits::get, 
+								(x, y) -> {throw new UnsupportedOperationException();}, Object2ObjectOpenHashMap::new));
+				final MutableGraph<BlockPos> graph = GraphBuilder.undirected().allowsSelfLoops(false).build();
+				nodes.forEach(pos -> {
+					graph.addNode(pos);
+					this.connectionGraph.incidentEdges(pos).forEach(graph::putEdge);
+				});
+				return new ConduitNetworkGraph(this.type, conduits, graph);
+			}).collect(Collectors.toList());
+		}
+
+		public int size() {
+			this.checkInvalid();
+			return this.conduits.size();
+		}
+
+		public boolean isEmpty() {
+			this.checkInvalid();
+			return this.conduits.isEmpty();
+		}
+
+		public void invalidate() {
+			this.invalid = true;
+		}
+		
+		public boolean isInvalid() {
+			return this.invalid;
+		}
+
+		public void checkInvalid() {
+			if(this.invalid)
+				throw new IllegalStateException("Attempted to use an invalidated network graph!");
+		}
+
+		@Override
+		public String toString() {
+			this.checkInvalid();
+			return new StringBuilder("ConduitNetworkGraph[Type: ").append(this.type.getSerializedName())
+					.append(", Conduit Positions: ").append(this.conduits.keySet())
+					.append(", Graph Nodes: ").append(this.connectionGraph.nodes())
+					.append(", Graph Edges: ").append(this.connectionGraph.edges()).append("]").toString();
+		}
+
 	}
 
 }
