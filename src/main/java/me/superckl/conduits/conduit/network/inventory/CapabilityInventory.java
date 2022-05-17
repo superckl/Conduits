@@ -26,7 +26,7 @@ public abstract class CapabilityInventory<T> extends ConduitConnection.Inventory
 	protected boolean providing = false;
 
 	public CapabilityInventory(final ConduitType type, final ConduitBlockEntity owner, final Direction fromDir, final Capability<T> cap) {
-		super(type, fromDir, null, owner);
+		super(type, fromDir, owner);
 		Preconditions.checkNotNull(owner);
 		this.cap = cap;
 	}

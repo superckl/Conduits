@@ -3,6 +3,8 @@ package me.superckl.conduits.util;
 import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.function.Function;
 
 import org.apache.commons.io.IOUtils;
 
@@ -12,6 +14,7 @@ import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
 
 import it.unimi.dsi.fastutil.floats.FloatFloatPair;
+import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -74,6 +77,17 @@ public class ConduitUtil {
 		if(collection.isEmpty())
 			throw new IllegalArgumentException("Cannot remove element from empty collection!");
 		return collection.iterator().next();
+	}
+
+	public static <V> V copyComputeIfAbsent(final Map<ConduitConnectionMap, V> map, ConduitConnectionMap key,
+			final Function<ConduitConnectionMap, V> computer){
+		if(!map.containsKey(key)) {
+			key = key.copyForMap();
+			final V value = computer.apply(key);
+			map.put(key, value);
+			return value;
+		}
+		return map.get(key);
 	}
 
 }

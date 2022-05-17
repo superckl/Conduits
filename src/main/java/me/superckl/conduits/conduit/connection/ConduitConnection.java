@@ -4,6 +4,8 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Objects;
+
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +14,6 @@ import me.superckl.conduits.conduit.ConduitType;
 import me.superckl.conduits.util.NBTUtil;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.level.block.entity.BlockEntity;
 
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class ConduitConnection {
@@ -38,6 +39,25 @@ public abstract class ConduitConnection {
 		return tag;
 	}
 
+	@Override
+	public boolean equals(final Object obj) {
+		if(obj instanceof final ConduitConnection conn)
+			return Objects.equal(this.type, conn.type) && Objects.equal(this.getConnectionType(), conn.getConnectionType());
+		return false;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hashCode(this.type, this.getConnectionType());
+	}
+
+	/**
+	 * Copies this conduit connection for placing into a map as a key.
+	 * The returned value should not contain any references to external structure
+	 * such as block entities since these will not be able to be garbage collected.
+	 */
+	public abstract ConduitConnection copyForMap();
+
 	public boolean resolve() {return true;}
 	protected void writeAdditional(final CompoundTag tag) {}
 	protected void readAdditioanl(final CompoundTag tag) {}
@@ -55,6 +75,11 @@ public abstract class ConduitConnection {
 			super(type);
 		}
 
+		@Override
+		public ConduitConnection copyForMap() {
+			return new Conduit(this.getType());
+		}
+
 	}
 
 	public static abstract class Inventory extends ConduitConnection{
@@ -62,8 +87,7 @@ public abstract class ConduitConnection {
 		protected final ConduitBlockEntity owner;
 		protected final Direction fromDir;
 
-		protected Inventory(final ConduitType type, final Direction fromConduit, final BlockEntity other,
-				final ConduitBlockEntity owner) {
+		protected Inventory(final ConduitType type, final Direction fromConduit, final ConduitBlockEntity owner) {
 			super(type);
 			this.owner = owner;
 			this.fromDir = fromConduit;
@@ -74,10 +98,48 @@ public abstract class ConduitConnection {
 				this.owner.inventoryInvalidated(this.fromDir, this);
 		}
 
+		@Override
+		public ConduitConnection copyForMap() {
+			return new DummyInventoryConnection(this.getType());
+		}
+
 		public abstract boolean isProviding();
 		public abstract boolean isAccepting();
 		public abstract void setProviding(boolean providing);
 		public abstract void setAccepting(boolean accepting);
+
+	}
+
+	private static class DummyInventoryConnection extends Inventory{
+
+		protected DummyInventoryConnection(final ConduitType type) {
+			super(type, null, null);
+		}
+
+		@Override
+		public ConduitConnection copyForMap() {
+			return new DummyInventoryConnection(this.getType());
+		}
+
+		@Override
+		public boolean isProviding() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean isAccepting() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void setProviding(final boolean providing) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void setAccepting(final boolean accepting) {
+			throw new UnsupportedOperationException();
+		}
 
 	}
 

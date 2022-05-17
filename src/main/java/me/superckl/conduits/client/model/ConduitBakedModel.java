@@ -20,6 +20,7 @@ import me.superckl.conduits.conduit.ConfiguredConduit;
 import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
 import me.superckl.conduits.conduit.part.ConduitPart;
 import me.superckl.conduits.conduit.part.ConduitParts;
+import me.superckl.conduits.util.ConduitUtil;
 import net.minecraft.Util;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
@@ -65,7 +66,7 @@ public class ConduitBakedModel implements BakedModel{
 		ConduitConnectionMap data = ConduitBakedModel.DEFAULT;
 		if(extraData.hasProperty(ConduitBlockEntity.CONNECTION_PROPERTY))
 			data = extraData.getData(ConduitBlockEntity.CONNECTION_PROPERTY);
-		return this.modelCache.computeIfAbsent(data, x -> this.bake(x).getQuads(state, null, rand, extraData));
+		return ConduitUtil.copyComputeIfAbsent(this.modelCache, data, x -> this.bake(x).getQuads(state, null, rand, extraData));
 	}
 
 	private BakedModel bake(final ConduitConnectionMap data) {

@@ -11,6 +11,7 @@ import me.superckl.conduits.conduit.ConduitShapeHelper;
 import me.superckl.conduits.conduit.ConduitType;
 import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
 import me.superckl.conduits.conduit.part.ConduitPartType;
+import me.superckl.conduits.util.ConduitUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.Containers;
@@ -107,7 +108,7 @@ public class ConduitBlock extends Block implements EntityBlock, SimpleWaterlogge
 	@Override
 	public VoxelShape getShape(final BlockState pState, final BlockGetter level, final BlockPos pPos, @Nullable final CollisionContext pContext) {
 		if(level.getBlockEntity(pPos) instanceof final ConduitBlockEntity conduit)
-			return ConduitBlock.SHAPE_CACHE.computeIfAbsent(conduit.getConnections(), connections -> connections.getParts().getShape());
+			return ConduitUtil.copyComputeIfAbsent(ConduitBlock.SHAPE_CACHE, conduit.getConnections(), connections -> connections.getParts().getShape());
 		return ConduitShapeHelper.getShape(ConduitPartType.JOINT);
 	}
 

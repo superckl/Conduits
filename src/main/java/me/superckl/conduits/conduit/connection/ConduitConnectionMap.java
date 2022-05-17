@@ -21,6 +21,8 @@ import com.mojang.math.Vector3f;
 import it.unimi.dsi.fastutil.booleans.BooleanObjectImmutablePair;
 import it.unimi.dsi.fastutil.booleans.BooleanObjectPair;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitShapeHelper;
 import me.superckl.conduits.conduit.ConduitTier;
@@ -28,16 +30,21 @@ import me.superckl.conduits.conduit.ConduitType;
 import me.superckl.conduits.conduit.ConfiguredConduit;
 import me.superckl.conduits.conduit.part.ConduitPart;
 import me.superckl.conduits.conduit.part.ConduitPartType;
+import me.superckl.conduits.util.ConduitUtil;
 import me.superckl.conduits.util.NBTUtil;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.AABB;
 
-public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data){
+@RequiredArgsConstructor
+@EqualsAndHashCode
+public class ConduitConnectionMap {
+
+	private final Map<ConduitType, ConduitConnectionState> data;
 
 	public ConduitTier setTier(final ConduitType type, final ConduitTier tier) {
 		if(this.data.containsKey(type))
-			return this.data.put(type, new ConduitConnectionState(type, tier, this.data.get(type).connections())).tier();
+			return this.data.put(type, new ConduitConnectionState(type, tier, this.data.get(type).getConnections())).getTier();
 		this.data.put(type, ConduitConnectionState.with(type, tier));
 		return null;
 	}
@@ -51,7 +58,7 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 	}
 
 	public ConduitTier getTier(final ConduitType type) {
-		return this.hasType(type) ? this.data.get(type).tier() : null;
+		return this.hasType(type) ? this.data.get(type).getTier() : null;
 	}
 
 	public Stream<ConduitType> types(){
@@ -73,7 +80,7 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 	public Map<Direction, ConduitConnection> getConnections(final ConduitType type){
 		if(!this.hasType(type))
 			return Collections.emptyMap();
-		return Collections.unmodifiableMap(this.data.get(type).connections());
+		return Collections.unmodifiableMap(this.data.get(type).getConnections());
 	}
 
 	public boolean hasConnection(final ConduitType type, final Direction dir) {
@@ -106,7 +113,7 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 	public boolean removeConnections(final Direction dir) {
 		boolean changed = false;
 		for(final ConduitConnectionState state :this.data.values())
-			changed = state.connections().keySet().removeIf(dir::equals) || changed;
+			changed = state.getConnections().keySet().removeIf(dir::equals) || changed;
 		return changed;
 	}
 
@@ -131,8 +138,8 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 	public Map<Direction, Map<ConduitType, Pair<ConduitTier, ConduitConnection>>> byDirection(){
 		final Map<Direction, Map<ConduitType, Pair<ConduitTier, ConduitConnection>>> base = new EnumMap<>(Direction.class);
 		this.data.forEach((type, state) -> {
-			state.connections().forEach((dir, con) -> {
-				base.computeIfAbsent(dir, x -> new EnumMap<>(ConduitType.class)).put(type, Pair.of(state.tier(), con));
+			state.getConnections().forEach((dir, con) -> {
+				base.computeIfAbsent(dir, x -> new EnumMap<>(ConduitType.class)).put(type, Pair.of(state.getTier(), con));
 			});
 		});
 		return base;
@@ -142,7 +149,7 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 	private static final Map<ConduitConnectionMap, ConfiguredConduit> PARTS_CACHE = ConduitConnectionMap.newConduitCache(true);
 
 	public ConfiguredConduit getParts(){
-		return ConduitConnectionMap.PARTS_CACHE.computeIfAbsent(this, ConduitConnectionMap::toParts);
+		return ConduitUtil.copyComputeIfAbsent(ConduitConnectionMap.PARTS_CACHE, this, ConduitConnectionMap::toParts);
 	}
 
 	public BooleanObjectPair<Direction> jointState(){
@@ -179,6 +186,13 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 		return BooleanObjectImmutablePair.of(mixed, passThrough);
 	}
 
+	public ConduitConnectionMap copyForMap(){
+		final Map<ConduitType, ConduitConnectionState> data = this.data.entrySet().stream()
+				.collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().copyForMap(),
+						(x, j) -> {throw new UnsupportedOperationException();}, () -> new EnumMap<>(ConduitType.class)));
+		return new ConduitConnectionMap(data);
+	}
+
 	private static ConfiguredConduit toParts(final ConduitConnectionMap conMap) {
 		final var byDir = conMap.byDirection();
 
@@ -213,7 +227,7 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 		}else {
 			final var offsets = ConduitShapeHelper.segmentOffsets(types.length, jointState.right());
 			for(int i = 0; i < types.length; i++)
-				joints.add(new ConduitPart(ConduitPartType.JOINT, conMap.data.get(types[i]).tier(),
+				joints.add(new ConduitPart(ConduitPartType.JOINT, conMap.data.get(types[i]).getTier(),
 						types[i], offsets[i], null, ConduitShapeHelper.segmentRotation(jointState.right())));
 		}
 		return new ConfiguredConduit(types, joints, mixedJoint, connections, segments);

@@ -2,9 +2,13 @@ package me.superckl.conduits.conduit.connection;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.google.common.math.IntMath;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitTier;
 import me.superckl.conduits.conduit.ConduitType;
@@ -13,10 +17,17 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 
-public record ConduitConnectionState(ConduitType type, ConduitTier tier, Map<Direction, ConduitConnection> connections) {
+@RequiredArgsConstructor
+@EqualsAndHashCode
+@Getter
+public class ConduitConnectionState{
 
 	private static final String TIER_KEY = "tier";
 	private static final String CONNECTION_KEY = "connection";
+
+	private final ConduitType type;
+	private final ConduitTier tier;
+	private final Map<Direction, ConduitConnection> connections;
 
 	public CompoundTag serialize() {
 		final CompoundTag tag = new CompoundTag();
@@ -43,6 +54,13 @@ public record ConduitConnectionState(ConduitType type, ConduitTier tier, Map<Dir
 
 	public boolean resolveConnections() {
 		return this.connections.values().stream().map(ConduitConnection::resolve).allMatch(Boolean::booleanValue);
+	}
+
+	public ConduitConnectionState copyForMap() {
+		final Map<Direction, ConduitConnection> connections = this.connections.entrySet().stream()
+				.collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().copyForMap(),
+						(x, j) -> {throw new UnsupportedOperationException();}, () -> new EnumMap<>(Direction.class)));
+		return new ConduitConnectionState(this.type, this.tier, connections);
 	}
 
 	public static ConduitConnectionState with(final ConduitType type, final ConduitTier tier) {
