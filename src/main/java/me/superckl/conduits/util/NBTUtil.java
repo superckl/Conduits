@@ -1,6 +1,7 @@
 package me.superckl.conduits.util;
 
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -16,9 +17,20 @@ public class NBTUtil {
 		return tag;
 	}
 
-	public static <K extends Enum<K> & StringRepresentable, V> Map<K,V> deserializeMap(final CompoundTag tag, final Supplier<? extends Map<K, V>> mapMaker, final Class<K> clazz, final Function<? super Tag, ? extends V> deserializer){
+	public static <K extends Enum<K> & StringRepresentable, V> Map<K,V> deserializeMap(final CompoundTag tag,
+			final Supplier<? extends Map<K, V>> mapMaker, final Class<K> clazz, final Function<? super Tag, ? extends V> deserializer){
 		final Map<K, V> map = mapMaker.get();
 		tag.getAllKeys().forEach(key -> map.put(NBTUtil.enumFromString(clazz, key), deserializer.apply(tag.get(key))));
+		return map;
+	}
+
+	public static <K extends Enum<K> & StringRepresentable, V> Map<K,V> deserializeMap(final CompoundTag tag,
+			final Supplier<? extends Map<K, V>> mapMaker, final Class<K> clazz, final BiFunction<K, ? super Tag, ? extends V> deserializer){
+		final Map<K, V> map = mapMaker.get();
+		tag.getAllKeys().forEach(key -> {
+			final K enumKey = NBTUtil.enumFromString(clazz, key);
+			map.put(enumKey, deserializer.apply(enumKey, tag.get(key)));
+		});
 		return map;
 	}
 

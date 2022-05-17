@@ -10,7 +10,6 @@ import com.google.common.collect.ImmutableList;
 
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitType;
-import me.superckl.conduits.conduit.network.inventory.InventoryConnection;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 
@@ -184,12 +183,6 @@ public class ConduitNetwork {
 			});
 			this.changedBEs.removeAll(copy);
 		}
-	}
-
-	public void inventoryInvalidated(final InventoryConnection connection) {
-		if(this != connection.getOwner())
-			throw new IllegalStateException("Inventory connection does not belong to this network!");
-		this.graph.invalidateInventory(connection);
 	}
 
 	public void tick() {

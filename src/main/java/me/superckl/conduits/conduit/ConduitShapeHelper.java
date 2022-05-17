@@ -14,7 +14,7 @@ import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
 
 import it.unimi.dsi.fastutil.floats.FloatFloatPair;
-import me.superckl.conduits.conduit.connection.ConduitConnectionType;
+import me.superckl.conduits.conduit.connection.ConduitConnection;
 import me.superckl.conduits.conduit.part.ConduitPartType;
 import me.superckl.conduits.util.ConduitUtil;
 import net.minecraft.Util;
@@ -104,8 +104,8 @@ public class ConduitShapeHelper {
 		};
 	}
 
-	public static boolean isPassthrough(final Map<ConduitType, Pair<ConduitTier, ConduitConnectionType>> first,
-			final Map<ConduitType, Pair<ConduitTier, ConduitConnectionType>> second) {
+	public static boolean isPassthrough(final Map<ConduitType, Pair<ConduitTier, ConduitConnection>> first,
+			final Map<ConduitType, Pair<ConduitTier, ConduitConnection>> second) {
 		return first.keySet().equals(second.keySet());
 	}
 

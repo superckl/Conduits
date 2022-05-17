@@ -21,6 +21,7 @@ import com.mojang.math.Vector3f;
 import it.unimi.dsi.fastutil.booleans.BooleanObjectImmutablePair;
 import it.unimi.dsi.fastutil.booleans.BooleanObjectPair;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitShapeHelper;
 import me.superckl.conduits.conduit.ConduitTier;
 import me.superckl.conduits.conduit.ConduitType;
@@ -36,8 +37,8 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 
 	public ConduitTier setTier(final ConduitType type, final ConduitTier tier) {
 		if(this.data.containsKey(type))
-			return this.data.put(type, new ConduitConnectionState(tier, this.data.get(type).connections())).tier();
-		this.data.put(type, ConduitConnectionState.with(tier));
+			return this.data.put(type, new ConduitConnectionState(type, tier, this.data.get(type).connections())).tier();
+		this.data.put(type, ConduitConnectionState.with(type, tier));
 		return null;
 	}
 
@@ -69,7 +70,7 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 		return num;
 	}
 
-	public Map<Direction, ConduitConnectionType> getConnections(final ConduitType type){
+	public Map<Direction, ConduitConnection> getConnections(final ConduitType type){
 		if(!this.hasType(type))
 			return Collections.emptyMap();
 		return Collections.unmodifiableMap(this.data.get(type).connections());
@@ -79,16 +80,22 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 		return this.getConnections(type).containsKey(dir);
 	}
 
-	public boolean setConnection(final ConduitType type, final Direction dir, final ConduitConnectionType con) {
+	public boolean makeConnection(final ConduitType type, final Direction dir, final ConduitConnection con) {
 		if(!this.hasType(type))
-			return false;
-		return this.data.get(type).setConnection(dir, con) != con;
+			throw new IllegalStateException("Cannot set connection for a missing type! "+type);
+		return this.data.get(type).makeConnection(dir, con);
 	}
 
 	public boolean removeConnection(final ConduitType type, final Direction dir) {
 		if(!this.hasType(type))
 			return false;
 		return this.data.get(type).removeConnection(dir) != null;
+	}
+
+	public boolean removeConnection(final Direction dir, final ConduitConnection conn) {
+		if(!this.hasType(conn.getType()))
+			return false;
+		return this.data.get(conn.getType()).removeConnection(dir, conn);
 	}
 
 	/**
@@ -107,17 +114,22 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 		return this.data.remove(type) != null;
 	}
 
+	public boolean resolveConnections() {
+		return this.data.values().stream().map(ConduitConnectionState::resolveConnections).allMatch(Boolean::booleanValue);
+	}
+
 	public CompoundTag serialize() {
 		return NBTUtil.serializeMap(this.data, ConduitConnectionState::serialize);
 	}
 
-	public void load(final CompoundTag tag) {
+	public void load(final CompoundTag tag, final ConduitBlockEntity owner) {
 		this.data.clear();
-		this.data.putAll(NBTUtil.deserializeMap(tag, () -> new EnumMap<>(ConduitType.class), ConduitType.class, ConduitConnectionState::from));
+		this.data.putAll(NBTUtil.deserializeMap(tag, () -> new EnumMap<>(ConduitType.class), ConduitType.class,
+				(type, tag2) -> ConduitConnectionState.from(tag2, type, owner)));
 	}
 
-	public Map<Direction, Map<ConduitType, Pair<ConduitTier, ConduitConnectionType>>> byDirection(){
-		final Map<Direction, Map<ConduitType, Pair<ConduitTier, ConduitConnectionType>>> base = new EnumMap<>(Direction.class);
+	public Map<Direction, Map<ConduitType, Pair<ConduitTier, ConduitConnection>>> byDirection(){
+		final Map<Direction, Map<ConduitType, Pair<ConduitTier, ConduitConnection>>> base = new EnumMap<>(Direction.class);
 		this.data.forEach((type, state) -> {
 			state.connections().forEach((dir, con) -> {
 				base.computeIfAbsent(dir, x -> new EnumMap<>(ConduitType.class)).put(type, Pair.of(state.tier(), con));
@@ -182,7 +194,8 @@ public record ConduitConnectionMap(Map<ConduitType, ConduitConnectionState> data
 				segments.put(dir, new ConduitPart(ConduitPartType.SEGMENT,
 						map.get(types[i]).getLeft(), types[i], offsets[i], null,
 						ConduitShapeHelper.segmentRotation(dir)));
-			if(map.values().stream().map(Pair::getRight).anyMatch(ConduitConnectionType.INVENTORY::equals))
+			if(map.values().stream().map(Pair::getRight).map(ConduitConnection::getConnectionType)
+					.anyMatch(ConduitConnectionType.INVENTORY::equals))
 				connections.put(dir, new ConduitPart(ConduitPartType.CONNECTION, null, null,
 						Vector3f.ZERO, null, ConduitShapeHelper.segmentRotation(dir)));
 		});

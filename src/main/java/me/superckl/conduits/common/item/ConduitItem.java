@@ -55,8 +55,8 @@ public class ConduitItem extends BlockItem{
 
 		final ConduitConnectionMap data = ConduitConnectionMap.make();
 		data.setTier(type, tier);
-		data.setConnection(type, Direction.WEST, ConduitConnectionType.CONDUIT);
-		data.setConnection(type, Direction.EAST, ConduitConnectionType.CONDUIT);
+		data.makeConnection(type, Direction.WEST, ConduitConnectionType.CONDUIT.apply(type, Direction.WEST, null));
+		data.makeConnection(type, Direction.EAST, ConduitConnectionType.CONDUIT.apply(type, Direction.EAST, null));
 		this.renderData = new ModelDataMap.Builder().withInitial(ConduitBlockEntity.CONNECTION_PROPERTY, data).build();
 	}
 

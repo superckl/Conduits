@@ -1,13 +1,11 @@
 package me.superckl.conduits.conduit.connection;
 
 import lombok.RequiredArgsConstructor;
-import me.superckl.conduits.conduit.network.ConduitNetwork;
+import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.network.inventory.CapabilityInventory;
-import me.superckl.conduits.conduit.network.inventory.InventoryConnection;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
@@ -22,7 +20,7 @@ public interface ConnectionHelper {
 	Fluid FLUID = new Fluid();
 
 	boolean canConnect(Direction dir, BlockEntity be);
-	InventoryConnection establishConnection(Direction dir, BlockEntity be, ConduitNetwork owner);
+	ConduitConnection.Inventory establishConnection(Direction dir, BlockEntity other, ConduitBlockEntity owner);
 
 	@RequiredArgsConstructor
 	public abstract static class CapabilityConnectionHelper<T> implements ConnectionHelper{
@@ -34,12 +32,8 @@ public interface ConnectionHelper {
 			return be.getCapability(this.cap, dir).isPresent();
 		}
 
-		protected LazyOptional<T> get(final Direction dir, final BlockEntity be){
-			return be.getCapability(this.cap, dir);
-		}
-
 		@Override
-		public abstract CapabilityInventory<T> establishConnection(final Direction dir, final BlockEntity be, ConduitNetwork owner);
+		public abstract CapabilityInventory<T> establishConnection(final Direction dir, final BlockEntity other, ConduitBlockEntity owner);
 
 	}
 
@@ -50,8 +44,8 @@ public interface ConnectionHelper {
 		}
 
 		@Override
-		public CapabilityInventory<IItemHandler> establishConnection(final Direction dir, final BlockEntity be, final ConduitNetwork owner) {
-			return new CapabilityInventory.Item(owner, be.getBlockPos().relative(dir), this.get(dir, be));
+		public CapabilityInventory<IItemHandler> establishConnection(final Direction dir, final BlockEntity be, final ConduitBlockEntity owner) {
+			return new CapabilityInventory.Item(owner, dir);
 		}
 
 	}
@@ -63,8 +57,8 @@ public interface ConnectionHelper {
 		}
 
 		@Override
-		public CapabilityInventory<IEnergyStorage> establishConnection(final Direction dir, final BlockEntity be, final ConduitNetwork owner) {
-			return new CapabilityInventory.Energy(owner, be.getBlockPos().relative(dir), this.get(dir, be));
+		public CapabilityInventory<IEnergyStorage> establishConnection(final Direction dir, final BlockEntity be, final ConduitBlockEntity owner) {
+			return new CapabilityInventory.Energy(owner, dir);
 		}
 
 	}
@@ -76,8 +70,8 @@ public interface ConnectionHelper {
 		}
 
 		@Override
-		public CapabilityInventory<IFluidHandler> establishConnection(final Direction dir, final BlockEntity be, final ConduitNetwork owner) {
-			return new CapabilityInventory.Fluid(owner, be.getBlockPos().relative(dir), this.get(dir, be));
+		public CapabilityInventory<IFluidHandler> establishConnection(final Direction dir, final BlockEntity be, final ConduitBlockEntity owner) {
+			return new CapabilityInventory.Fluid(owner, dir);
 		}
 
 	}

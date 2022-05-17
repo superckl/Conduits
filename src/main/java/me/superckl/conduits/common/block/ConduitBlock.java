@@ -14,6 +14,8 @@ import me.superckl.conduits.conduit.part.ConduitPartType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.Containers;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
@@ -27,6 +29,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.material.Material;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -53,6 +56,12 @@ public class ConduitBlock extends Block implements EntityBlock, SimpleWaterlogge
 			return null;
 		}).orElseGet(() -> super.getCloneItemStack(state, target, level, pos, player));
 
+	}
+
+	@Override
+	public InteractionResult use(final BlockState pState, final Level pLevel, final BlockPos pPos, final Player pPlayer, final InteractionHand pHand,
+			final BlockHitResult pHit) {
+		return super.use(pState, pLevel, pPos, pPlayer, pHand, pHit);
 	}
 
 	@Override

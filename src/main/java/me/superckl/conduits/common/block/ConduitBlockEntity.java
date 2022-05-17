@@ -12,10 +12,10 @@ import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.common.item.ConduitItem;
 import me.superckl.conduits.conduit.ConduitTier;
 import me.superckl.conduits.conduit.ConduitType;
+import me.superckl.conduits.conduit.connection.ConduitConnection;
 import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
 import me.superckl.conduits.conduit.connection.ConduitConnectionType;
 import me.superckl.conduits.conduit.network.ConduitNetwork;
-import me.superckl.conduits.conduit.network.inventory.InventoryConnection;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -136,11 +136,11 @@ public class ConduitBlockEntity extends BlockEntity{
 			if(be instanceof final ConduitBlockEntity conduit) {
 				final ConduitTier tier = this.connections.getTier(type);
 				if(conduit.hasType(type) && conduit.isTier(type, tier))
-					this.setConnection(type, dir, ConduitConnectionType.CONDUIT);
+					this.makeConnection(type, dir, ConduitConnectionType.CONDUIT);
 				else
 					this.removeConnection(type, dir);
-			}else if(type.getConnectionHelper().canConnect(dir.getOpposite(), be))
-				this.setConnection(type, dir, ConduitConnectionType.INVENTORY);
+			}else if(type.canConnect(dir, be))
+				this.makeConnection(type, dir, ConduitConnectionType.INVENTORY);
 			else
 				this.removeConnection(type, dir);
 		});
@@ -148,8 +148,14 @@ public class ConduitBlockEntity extends BlockEntity{
 
 	public Collection<ConduitBlockEntity> getConnectedConduits(final ConduitType type){
 		return this.connections.getConnections(type).entrySet().stream()
-				.filter(entry -> entry.getValue() == ConduitConnectionType.CONDUIT).map(Map.Entry::getKey)
+				.filter(entry -> entry.getValue().getConnectionType() == ConduitConnectionType.CONDUIT).map(Map.Entry::getKey)
 				.map(this::getNeighborConduit).collect(Collectors.toList());
+	}
+
+	public Collection<ConduitConnection.Inventory> getConnectedInventories(final ConduitType type){
+		return this.connections.getConnections(type).entrySet().stream()
+				.filter(entry -> entry.getValue().getConnectionType() == ConduitConnectionType.INVENTORY).map(Map.Entry::getValue)
+				.map(ConduitConnection::asInventory).collect(Collectors.toList());
 	}
 
 	private ConduitBlockEntity getNeighborConduit(final Direction dir) {
@@ -159,24 +165,35 @@ public class ConduitBlockEntity extends BlockEntity{
 		return this.level.getBlockEntity(pos, ModBlocks.CONDUIT_ENTITY.get()).orElse(null);
 	}
 
-	public Optional<InventoryConnection> establishInventoryConnection(final ConduitType type, final Direction dir) {
+	public Optional<ConduitConnection.Inventory> establishInventoryConnection(final ConduitType type, final Direction dir) {
 		if(!this.getConnections().hasConnection(type, dir))
 			return Optional.empty();
 		final BlockEntity inventory = this.level.getBlockEntity(this.worldPosition.relative(dir));
-		if(inventory == null || !type.getConnectionHelper().canConnect(dir.getOpposite(), inventory)) {
+		if(inventory == null || !type.canConnect(dir.getOpposite(), inventory)) {
 			Conduits.LOG.warn("Conduit at %s was connected to inventory %s at %s but that inventory is not connectable!",
 					this.worldPosition, inventory == null ? "N/A (null)" : inventory.getType().getRegistryName(),
 							this.worldPosition.relative(dir));
 			this.discoverNeighbors();
 			return Optional.empty();
 		}
-		return Optional.of(type.getConnectionHelper().establishConnection(dir.getOpposite(), inventory,
-				this.getNetwork(type).orElseThrow(() -> new IllegalStateException("Unable to establish connection from conduit with no network!"))));
+		final ConduitConnection.Inventory connection = ConduitConnectionType.INVENTORY.apply(type, dir, this).asInventory();
+		connection.resolve();
+		return Optional.of(connection);
 	}
 
-	private void setConnection(final ConduitType type, final Direction dir, final ConduitConnectionType con) {
-		if(this.connections.setConnection(type, dir, con))
+	public void inventoryInvalidated(final Direction dir, final ConduitConnection.Inventory con) {
+		if(this.connections.removeConnection(dir, con))
 			this.connectionChange();
+	}
+
+	private boolean makeConnection(final ConduitType type, final Direction dir, final ConduitConnectionType con) {
+		final ConduitConnection connection = con.apply(type, dir, this);
+		if(this.connections.makeConnection(type, dir, connection)) {
+			connection.resolve();
+			this.connectionChange();
+			return true;
+		}
+		return false;
 	}
 
 	private void removeConnection(final ConduitType type, final Direction dir) {
@@ -217,12 +234,14 @@ public class ConduitBlockEntity extends BlockEntity{
 	@Override
 	public void clearRemoved() {
 		super.clearRemoved();
+		//this.connections.resolveConnections();
 		this.notifyNetworks();
 	}
 
 	@Override
 	public void onLoad() {
 		super.onLoad();
+		this.connections.resolveConnections();
 		this.notifyNetworks();
 	}
 
@@ -264,7 +283,7 @@ public class ConduitBlockEntity extends BlockEntity{
 		super.load(pTag);
 		if(pTag.contains(ConduitBlockEntity.DATA_KEY, Tag.TAG_COMPOUND)) {
 			final CompoundTag conduitData = pTag.getCompound(ConduitBlockEntity.DATA_KEY);
-			this.connections.load(conduitData);
+			this.connections.load(conduitData, this);
 		}
 	}
 	@Override
