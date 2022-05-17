@@ -83,7 +83,8 @@ public class ConduitNetworkGraph{
 		conduit.getConnections().getConnections(this.type).forEach((dir, connType) -> {
 			switch(connType) {
 			case CONDUIT -> this.connectionGraph.putEdge(pos, pos.relative(dir));
-			case INVENTORY -> this.inventories.put(pos, conduit.establishInventoryConnection(this.type, dir).orElseThrow());
+			case INVENTORY -> conduit.establishInventoryConnection(this.type, dir)
+			.ifPresent(connection -> this.inventories.put(pos, connection));
 			default -> throw new IllegalStateException("Unsupported connection type "+connType);
 			}
 		});
