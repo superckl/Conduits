@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
+import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.common.item.ConduitItem;
 import me.superckl.conduits.conduit.ConduitTier;
@@ -14,6 +15,7 @@ import me.superckl.conduits.conduit.ConduitType;
 import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
 import me.superckl.conduits.conduit.connection.ConduitConnectionType;
 import me.superckl.conduits.conduit.network.ConduitNetwork;
+import me.superckl.conduits.conduit.network.inventory.InventoryConnection;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -155,6 +157,21 @@ public class ConduitBlockEntity extends BlockEntity{
 		if(!this.level.isLoaded(pos))
 			return null;
 		return this.level.getBlockEntity(pos, ModBlocks.CONDUIT_ENTITY.get()).orElse(null);
+	}
+
+	public Optional<InventoryConnection> establishInventoryConnection(final ConduitType type, final Direction dir) {
+		if(!this.getConnections().hasConnection(type, dir))
+			return Optional.empty();
+		final BlockEntity inventory = this.level.getBlockEntity(this.worldPosition.relative(dir));
+		if(inventory == null || !type.getConnectionHelper().canConnect(dir.getOpposite(), inventory)) {
+			Conduits.LOG.warn("Conduit at %s was connected to inventory %s at %s but that inventory is not connectable!",
+					this.worldPosition, inventory == null ? "N/A (null)" : inventory.getType().getRegistryName(),
+							this.worldPosition.relative(dir));
+			this.discoverNeighbors();
+			return Optional.empty();
+		}
+		return Optional.of(type.getConnectionHelper().establishConnection(dir.getOpposite(), inventory,
+				this.getNetwork(type).orElseThrow(() -> new IllegalStateException("Unable to establish connection from conduit with no network!"))));
 	}
 
 	private void setConnection(final ConduitType type, final Direction dir, final ConduitConnectionType con) {

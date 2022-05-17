@@ -8,6 +8,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.MutableGraph;
 
@@ -15,7 +17,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitType;
-import me.superckl.conduits.conduit.connection.ConduitConnectionType;
+import me.superckl.conduits.conduit.network.inventory.InventoryConnection;
 import me.superckl.conduits.util.GraphUtil;
 import net.minecraft.core.BlockPos;
 
@@ -28,16 +30,19 @@ public class ConduitNetworkGraph{
 
 	private final ConduitType type;
 	private final Map<BlockPos, ConduitBlockEntity> conduits;
+	private final Multimap<BlockPos, InventoryConnection> inventories;
 	private final MutableGraph<BlockPos> connectionGraph;
 	private boolean invalid = false;
 
 	public ConduitNetworkGraph(final ConduitType type) {
-		this(type, new Object2ObjectOpenHashMap<>(), GraphBuilder.undirected().allowsSelfLoops(false).build());
+		this(type, new Object2ObjectOpenHashMap<>(), MultimapBuilder.hashKeys().arrayListValues().build(),
+				GraphBuilder.undirected().allowsSelfLoops(false).build());
 	}
 
 	public boolean removeNode(final BlockPos pos) {
 		this.checkInvalid();
 		this.conduits.remove(pos);
+		this.inventories.removeAll(pos);
 		return this.connectionGraph.removeNode(pos);
 	}
 
@@ -63,6 +68,7 @@ public class ConduitNetworkGraph{
 		if(!nodes.containsAll(other.connectionGraph.nodes()))
 			throw new IllegalArgumentException("Cannot merge graph that contains nodes this graph does not contain!");
 		GraphUtil.merge(this.connectionGraph, other.connectionGraph);
+		this.inventories.putAll(other.inventories);
 	}
 
 	public void putConnections(final ConduitBlockEntity conduit) {
@@ -72,10 +78,14 @@ public class ConduitNetworkGraph{
 			throw new IllegalArgumentException("Conduit is not a member of this network!");
 		//Clear the existing edges
 		this.connectionGraph.removeNode(pos);
+		this.inventories.removeAll(pos);
 		this.connectionGraph.addNode(pos);
 		conduit.getConnections().getConnections(this.type).forEach((dir, connType) -> {
-			if(connType == ConduitConnectionType.CONDUIT)
-				this.connectionGraph.putEdge(pos, pos.relative(dir));
+			switch(connType) {
+			case CONDUIT -> this.connectionGraph.putEdge(pos, pos.relative(dir));
+			case INVENTORY -> this.inventories.put(pos, conduit.establishInventoryConnection(this.type, dir).orElseThrow());
+			default -> throw new IllegalStateException("Unsupported connection type "+connType);
+			}
 		});
 	}
 
@@ -91,13 +101,20 @@ public class ConduitNetworkGraph{
 			final Map<BlockPos, ConduitBlockEntity> conduits = nodes.stream()
 					.collect(Collectors.toMap(Function.identity(), this.conduits::get,
 							(x, y) -> {throw new UnsupportedOperationException();}, Object2ObjectOpenHashMap::new));
+			final Multimap<BlockPos, InventoryConnection> inventories = MultimapBuilder.hashKeys().arrayListValues().build();
+			this.inventories.keySet().stream().filter(nodes::contains)
+			.forEach(pos -> inventories.putAll(pos, this.inventories.get(pos)));
 			final MutableGraph<BlockPos> graph = GraphBuilder.undirected().allowsSelfLoops(false).build();
 			nodes.forEach(pos -> {
 				graph.addNode(pos);
 				this.connectionGraph.incidentEdges(pos).forEach(graph::putEdge);
 			});
-			return new ConduitNetworkGraph(this.type, conduits, graph);
+			return new ConduitNetworkGraph(this.type, conduits, inventories, graph);
 		}).collect(Collectors.toList());
+	}
+
+	public void invalidateInventory(final InventoryConnection inventory) {
+		this.inventories.remove(inventory.getConnectedConduit(), inventory);
 	}
 
 	public int size() {
@@ -126,9 +143,17 @@ public class ConduitNetworkGraph{
 	@Override
 	public String toString() {
 		this.checkInvalid();
-		return new StringBuilder("ConduitNetworkGraph[Type: ").append(this.type.getSerializedName())
-				.append(", Conduit Positions: ").append(this.conduits.keySet())
-				.append(", Graph Nodes: ").append(this.connectionGraph.nodes())
+		final StringBuilder builder = new StringBuilder("ConduitNetworkGraph[Type: ").append(this.type.getSerializedName())
+				.append(", Conduit Positions: [");
+		this.conduits.keySet().forEach(pos -> {
+			builder.append(pos);
+			if(this.inventories.containsKey(pos))
+				builder.append('(').append(this.inventories.get(pos).size()).append(')');
+			builder.append(',');
+		});
+		builder.deleteCharAt(builder.length()-1);
+		builder.append(']');
+		return builder.append(", Graph Nodes: ").append(this.connectionGraph.nodes())
 				.append(", Graph Edges: ").append(this.connectionGraph.edges()).append("]").toString();
 	}
 

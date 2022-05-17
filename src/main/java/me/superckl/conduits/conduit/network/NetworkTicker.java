@@ -74,9 +74,7 @@ public class NetworkTicker {
 
 		@Override
 		public <T> LazyOptional<T> getCapability(final Capability<T> cap, final Direction side) {
-			if(cap == NetworkTicker.CAPABILITY)
-				return this.ticker.cast();
-			return LazyOptional.empty();
+			return NetworkTicker.CAPABILITY.orEmpty(cap, this.ticker);
 		}
 
 	}
