@@ -32,6 +32,10 @@ public class ConduitsLanguageProvider extends LanguageProvider{
 		this.addItem(ModItems.CONDUITS.get(ConduitType.ITEM).get(ConduitTier.EARLY), "Early Tier Item Conduit");
 		this.addItem(ModItems.CONDUITS.get(ConduitType.ITEM).get(ConduitTier.MIDDLE), "Middle Tier Item Conduit");
 		this.addItem(ModItems.CONDUITS.get(ConduitType.ITEM).get(ConduitTier.LATE), "Late Tier Item Conduit");
+		
+		this.addItem(ModItems.CONDUITS.get(ConduitType.FLUID).get(ConduitTier.EARLY), "Early Tier Fluid Conduit");
+		this.addItem(ModItems.CONDUITS.get(ConduitType.FLUID).get(ConduitTier.MIDDLE), "Middle Tier Fluid Conduit");
+		this.addItem(ModItems.CONDUITS.get(ConduitType.FLUID).get(ConduitTier.LATE), "Late Tier Fluid Conduit");
 
 		this.addItem(ModItems.WRENCH, "Conduit Wrench");
 	}
