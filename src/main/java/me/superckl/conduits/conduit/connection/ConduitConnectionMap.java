@@ -17,12 +17,14 @@ import com.google.common.collect.MultimapBuilder;
 import com.google.common.math.IntMath;
 import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
+import com.mojang.serialization.Codec;
 
 import it.unimi.dsi.fastutil.booleans.BooleanObjectImmutablePair;
 import it.unimi.dsi.fastutil.booleans.BooleanObjectPair;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
+import me.superckl.conduits.ModConduits;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitShapeHelper;
 import me.superckl.conduits.conduit.ConduitTier;
@@ -33,12 +35,16 @@ import me.superckl.conduits.conduit.part.ConduitPartType;
 import me.superckl.conduits.util.ConduitUtil;
 import me.superckl.conduits.util.NBTUtil;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.phys.AABB;
 
 @RequiredArgsConstructor
 @EqualsAndHashCode
 public class ConduitConnectionMap {
+
+	private static final Codec<Map<ConduitType, ConduitConnectionState>> MAP_CODEC =
+			ConduitUtil.generalizedMapCodec(ModConduits.TYPES_CODEC, ConduitConnectionState.CODEC, Object2ObjectOpenHashMap::new);
 
 	private final Map<ConduitType, ConduitConnectionState> data;
 
@@ -87,6 +93,10 @@ public class ConduitConnectionMap {
 		return this.getConnections(type).containsKey(dir);
 	}
 
+	public ConduitConnection getConnection(final ConduitType type, final Direction dir) {
+		return this.getConnections(type).get(dir);
+	}
+
 	public boolean makeConnection(final ConduitType type, final Direction dir, final ConduitConnection con) {
 		if(!this.hasType(type))
 			throw new IllegalStateException("Cannot set connection for a missing type! "+type);
@@ -125,21 +135,21 @@ public class ConduitConnectionMap {
 		return this.data.values().stream().map(ConduitConnectionState::resolveConnections).allMatch(Boolean::booleanValue);
 	}
 
-	public CompoundTag serialize() {
-		return NBTUtil.serializeMap(this.data, ConduitConnectionState::serialize);
+	public Tag serialize() {
+		return NBTUtil.encode(NbtOps.INSTANCE, this.data, ConduitConnectionMap.MAP_CODEC);
 	}
 
-	public void load(final CompoundTag tag, final ConduitBlockEntity owner) {
+	public void load(final Tag tag, final ConduitBlockEntity owner) {
 		this.data.clear();
-		this.data.putAll(NBTUtil.deserializeMap(tag, () -> new EnumMap<>(ConduitType.class), ConduitType.class,
-				(type, tag2) -> ConduitConnectionState.from(tag2, type, owner)));
+		this.data.putAll(NBTUtil.decode(NbtOps.INSTANCE, tag, ConduitConnectionMap.MAP_CODEC));
+		this.data.values().forEach(state -> state.setOwners(owner));
 	}
 
 	public Map<Direction, Map<ConduitType, Pair<ConduitTier, ConduitConnection>>> byDirection(){
 		final Map<Direction, Map<ConduitType, Pair<ConduitTier, ConduitConnection>>> base = new EnumMap<>(Direction.class);
 		this.data.forEach((type, state) -> {
 			state.getConnections().forEach((dir, con) -> {
-				base.computeIfAbsent(dir, x -> new EnumMap<>(ConduitType.class)).put(type, Pair.of(state.getTier(), con));
+				base.computeIfAbsent(dir, x -> new Object2ObjectOpenHashMap<>()).put(type, Pair.of(state.getTier(), con));
 			});
 		});
 		return base;
@@ -189,7 +199,7 @@ public class ConduitConnectionMap {
 	public ConduitConnectionMap copyForMap(){
 		final Map<ConduitType, ConduitConnectionState> data = this.data.entrySet().stream()
 				.collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().copyForMap(),
-						(x, j) -> {throw new UnsupportedOperationException();}, () -> new EnumMap<>(ConduitType.class)));
+						(x, j) -> {throw new UnsupportedOperationException();}, Object2ObjectOpenHashMap::new));
 		return new ConduitConnectionMap(data);
 	}
 
@@ -234,11 +244,11 @@ public class ConduitConnectionMap {
 	}
 
 	public static ConduitConnectionMap make() {
-		return new ConduitConnectionMap(new EnumMap<>(ConduitType.class));
+		return new ConduitConnectionMap(new Object2ObjectOpenHashMap<>());
 	}
 
 	public static int states() {
-		return IntMath.pow(ConduitConnectionState.states()+1, ConduitType.values().length);
+		return IntMath.pow(ConduitConnectionState.states()+1, ModConduits.TYPES.getEntries().size());
 	}
 
 	public static <K, V> Map<K, V> newConduitCache(final boolean threadSafe){

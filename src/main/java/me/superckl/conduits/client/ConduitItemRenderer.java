@@ -25,7 +25,7 @@ public class ConduitItemRenderer extends BlockEntityWithoutLevelRenderer{
 			final MultiBufferSource pBuffer, final int pPackedLight, final int pPackedOverlay) {
 		if(pStack.getItem() instanceof final ConduitItem conduit)
 			Minecraft.getInstance().getBlockRenderer().renderSingleBlock(ModBlocks.CONDUIT_BLOCK.get().defaultBlockState(),
-					stack, pBuffer, pPackedLight, pPackedOverlay, conduit.getRenderData());
+					stack, pBuffer, pPackedLight, pPackedOverlay, conduit.getRenderData().get());
 	}
 
 }

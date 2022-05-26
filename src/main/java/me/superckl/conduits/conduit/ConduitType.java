@@ -1,116 +1,52 @@
 package me.superckl.conduits.conduit;
 
-import lombok.RequiredArgsConstructor;
+import java.util.Objects;
+
+import com.mojang.serialization.Codec;
+
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.connection.ConduitConnection;
 import me.superckl.conduits.conduit.connection.ConduitConnectionType;
-import me.superckl.conduits.conduit.network.inventory.CapabilityInventory;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.util.StringRepresentable;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.energy.CapabilityEnergy;
-import net.minecraftforge.energy.IEnergyStorage;
-import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.items.CapabilityItemHandler;
-import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.registries.ForgeRegistryEntry;
 
-@RequiredArgsConstructor
-public enum ConduitType implements StringRepresentable{
+public abstract class ConduitType extends ForgeRegistryEntry<ConduitType> implements Comparable<ConduitType>{
 
-	ITEM("item", ConnectionHelper.ITEM),
-	ENERGY("energy", ConnectionHelper.ENERGY),
-	FLUID("fluid", ConnectionHelper.FLUID);
+	private Component displayName;
 
-	private final String name;
-	private final ConnectionHelper connectionHelper;
-
-	@Override
-	public String getSerializedName() {
-		return this.name;
+	public Component getDisplayName() {
+		if(this.displayName == null)
+			this.displayName = new TranslatableComponent("conduits.type."+this.getRegistryName().getPath());
+		return this.displayName;
 	}
 
-	public StringTag tag() {
-		return StringTag.valueOf(this.name);
-	}
-
-	public boolean canConnect(final Direction dir, final BlockEntity be) {
-		return this.connectionHelper.canConnect(dir, be);
-	}
-
+	public abstract boolean canConnect(final Direction dir, final BlockEntity be);
 	/**
 	 * This should only be called through {@link ConduitConnectionType#apply}
 	 */
 	@Deprecated
-	public ConduitConnection.Inventory establishConnection(final Direction dir, final ConduitBlockEntity owner){
-		return this.connectionHelper.establishConnection(dir, owner);
+	public abstract ConduitConnection.Inventory establishConnection(final Direction dir, final ConduitBlockEntity owner);
+	protected abstract Codec<? extends ConduitConnection.Inventory> inventoryCodec();
+
+	public final Codec<? extends ConduitConnection> getCodec(final ConduitConnectionType connType){
+		return switch(connType) {
+		case CONDUIT -> ConduitConnection.Conduit.CODEC;
+		case INVENTORY -> this.inventoryCodec();
+		default -> throw new IncompatibleClassChangeError();
+		};
 	}
 
-	//INTERNAL HELPER CLASSES
-	private interface ConnectionHelper {
-
-		Item ITEM = new Item();
-		Energy ENERGY = new Energy();
-		Fluid FLUID = new Fluid();
-
-		boolean canConnect(Direction dir, BlockEntity be);
-		ConduitConnection.Inventory establishConnection(Direction dir, ConduitBlockEntity owner);
+	@Override
+	public int hashCode() {
+		return Objects.hash(this.getRegistryName());
 	}
 
-	@RequiredArgsConstructor
-	private abstract static class CapabilityConnectionHelper<T> implements ConnectionHelper{
-
-		protected final Capability<T> cap;
-
-		@Override
-		public boolean canConnect(final Direction dir, final BlockEntity be) {
-			return be.getCapability(this.cap, dir.getOpposite()).isPresent();
-		}
-
-		@Override
-		public abstract CapabilityInventory<T> establishConnection(final Direction dir, ConduitBlockEntity owner);
-
-	}
-
-	private static class Item extends CapabilityConnectionHelper<IItemHandler>{
-
-		private Item() {
-			super(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY);
-		}
-
-		@Override
-		public CapabilityInventory<IItemHandler> establishConnection(final Direction dir, final ConduitBlockEntity owner) {
-			return new CapabilityInventory.Item(owner, dir);
-		}
-
-	}
-
-	private static class Energy extends CapabilityConnectionHelper<IEnergyStorage>{
-
-		private Energy() {
-			super(CapabilityEnergy.ENERGY);
-		}
-
-		@Override
-		public CapabilityInventory<IEnergyStorage> establishConnection(final Direction dir, final ConduitBlockEntity owner) {
-			return new CapabilityInventory.Energy(owner, dir);
-		}
-
-	}
-
-	private static class Fluid extends CapabilityConnectionHelper<IFluidHandler>{
-
-		private Fluid() {
-			super(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY);
-		}
-
-		@Override
-		public CapabilityInventory<IFluidHandler> establishConnection(final Direction dir, final ConduitBlockEntity owner) {
-			return new CapabilityInventory.Fluid(owner, dir);
-		}
-
+	@Override
+	public int compareTo(final ConduitType o) {
+		return this.getRegistryName().compareTo(o.getRegistryName());
 	}
 
 }

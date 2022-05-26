@@ -8,12 +8,13 @@ import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.ModItems;
 import me.superckl.conduits.common.item.ConduitItem;
 import me.superckl.conduits.conduit.ConduitShapeHelper;
-import me.superckl.conduits.conduit.ConduitType;
 import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
+import me.superckl.conduits.conduit.network.inventory.InventoryConnectionMenu;
 import me.superckl.conduits.conduit.part.ConduitPartType;
 import me.superckl.conduits.util.ConduitUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -32,8 +33,10 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.RegistryObject;
 
 public class ConduitBlock extends Block implements EntityBlock, SimpleWaterloggedBlock{
@@ -49,20 +52,34 @@ public class ConduitBlock extends Block implements EntityBlock, SimpleWaterlogge
 	@Override
 	public ItemStack getCloneItemStack(final BlockState state, final HitResult target, final BlockGetter level, final BlockPos pos,
 			final Player player) {
-		return level.getBlockEntity(pos, ModBlocks.CONDUIT_ENTITY.get()).map(be -> {
-			// TODO check where they actually clicked and give them that kind of conduit
-			for(final ConduitType type:ConduitType.values())
-				if(be.hasType(type))
-					return new ItemStack(ModItems.CONDUITS.get(type).get(be.getTier(type)).get());
-			return null;
-		}).orElseGet(() -> super.getCloneItemStack(state, target, level, pos, player));
-
+		return level.getBlockEntity(pos, ModBlocks.CONDUIT_ENTITY.get()).map(conduit -> conduit.getConnections().getParts().findPart(ConduitUtil.localizeHit(target.getLocation(), pos))
+				.map(part -> {
+					if(part.conduitType() != null && part.tier() != null)
+						return new ItemStack(ModItems.CONDUITS.get(part.conduitType().getRegistryName()).get(part.tier())::get);
+					return conduit.getConnections().types().findAny().map(type ->
+					new ItemStack(ModItems.CONDUITS.get(type.getRegistryName()).get(conduit.getTier(type))::get)
+							).orElse(null);
+				}).orElse(null)).orElse(ItemStack.EMPTY);
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
-	public InteractionResult use(final BlockState pState, final Level pLevel, final BlockPos pPos, final Player pPlayer, final InteractionHand pHand,
+	public InteractionResult use(final BlockState state, final Level level, final BlockPos pos, final Player player, final InteractionHand hand,
 			final BlockHitResult pHit) {
-		return super.use(pState, pLevel, pPos, pPlayer, pHand, pHit);
+		return level.getBlockEntity(pos, ModBlocks.CONDUIT_ENTITY.get())
+				.map(conduit -> conduit.getConnections().getParts().findPart(ConduitUtil.localizeHit(pHit.getLocation(), pos))
+						.filter(part -> part.type() == ConduitPartType.CONNECTION).map(part -> {
+							if(!level.isClientSide && player instanceof final ServerPlayer sPlayer) {
+								final Vec3 dirVector = ConduitUtil.localizeHit(pHit.getLocation(), pos).subtract(0.5, 0.5, 0.5);
+								final Direction dir = Direction.getNearest(dirVector.x, dirVector.y, dirVector.z);
+
+								NetworkHooks.openGui(sPlayer, InventoryConnectionMenu.makeProvider(pos, dir), buf -> {
+									buf.writeBlockPos(pos);
+									buf.writeEnum(dir);
+								});
+							}
+							return InteractionResult.sidedSuccess(level.isClientSide);
+						}).orElse(null)).orElseGet(() -> super.use(state, level, pos, player, hand, pHit));
 	}
 
 	@Override
@@ -94,7 +111,7 @@ public class ConduitBlock extends Block implements EntityBlock, SimpleWaterlogge
 			final BlockEntity blockentity = pLevel.getBlockEntity(pPos);
 			if (blockentity instanceof final ConduitBlockEntity conduit)
 				conduit.getConnections().types().forEach(type -> {
-					final RegistryObject<ConduitItem> item = ModItems.CONDUITS.get(type).get(conduit.getTier(type));
+					final RegistryObject<ConduitItem> item = ModItems.CONDUITS.get(type.getRegistryName()).get(conduit.getTier(type));
 					Containers.dropItemStack(pLevel, pPos.getX(), pPos.getY(), pPos.getZ(), new ItemStack(item::get));
 				});
 

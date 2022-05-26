@@ -1,5 +1,6 @@
 package me.superckl.conduits.conduit.network;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -8,15 +9,19 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.MutableGraph;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitType;
+import me.superckl.conduits.conduit.connection.ConduitConnection.Inventory;
 import me.superckl.conduits.util.GraphUtil;
+import me.superckl.conduits.util.Positioned;
+import me.superckl.conduits.util.PositionedCache;
 import net.minecraft.core.BlockPos;
 
 /**
@@ -30,19 +35,19 @@ public class ConduitNetworkGraph{
 
 	private final ConduitType type;
 	private final Map<BlockPos, ConduitBlockEntity> conduits;
-	private final Set<BlockPos> withInventories;
+	private final PositionedCache<Inventory> inventories;
 	private final MutableGraph<BlockPos> connectionGraph;
 	private boolean invalid = false;
 
 	public ConduitNetworkGraph(final ConduitType type) {
-		this(type, new Object2ObjectOpenHashMap<>(), new ObjectOpenHashSet<>(),
+		this(type, new Object2ObjectOpenHashMap<>(), new PositionedCache<>(),
 				GraphBuilder.undirected().allowsSelfLoops(false).build());
 	}
 
 	public boolean removeNode(final BlockPos pos) {
 		this.checkInvalid();
 		this.conduits.remove(pos);
-		this.withInventories.remove(pos);
+		this.inventories.removeAll(pos);
 		return this.connectionGraph.removeNode(pos);
 	}
 
@@ -62,13 +67,25 @@ public class ConduitNetworkGraph{
 		return Collections.unmodifiableCollection(this.conduits.values());
 	}
 
+	public Pair<List<Positioned<Inventory>>, List<Positioned<Inventory>>> gatherInventories(final ConduitType type){
+		final List<Positioned<Inventory>> accepting = new ArrayList<>();
+		final List<Positioned<Inventory>> providing = new ArrayList<>();
+		this.inventories.stream().forEach(pos -> {
+			if(pos.value().getSettings().isAccepting())
+				accepting.add(pos);
+			if(pos.value().getSettings().isProviding())
+				providing.add(pos);
+		});
+		return Pair.of(accepting, providing);
+	}
+
 	public void mergeConnections(final ConduitNetworkGraph other) {
 		this.checkInvalid();
 		final Set<BlockPos> nodes = this.connectionGraph.nodes();
 		if(!nodes.containsAll(other.connectionGraph.nodes()))
 			throw new IllegalArgumentException("Cannot merge graph that contains nodes this graph does not contain!");
 		GraphUtil.merge(this.connectionGraph, other.connectionGraph);
-		this.withInventories.addAll(other.withInventories);
+		this.inventories.addAll(other.inventories);
 	}
 
 	public void putConnections(final ConduitBlockEntity conduit) {
@@ -78,12 +95,12 @@ public class ConduitNetworkGraph{
 			throw new IllegalArgumentException("Conduit is not a member of this network!");
 		//Clear the existing edges
 		this.connectionGraph.removeNode(pos);
-		this.withInventories.remove(pos);
+		this.inventories.removeAll(pos);
 		this.connectionGraph.addNode(pos);
 		conduit.getConnections().getConnections(this.type).forEach((dir, conn) -> {
 			switch(conn.getConnectionType()) {
 			case CONDUIT -> this.connectionGraph.putEdge(pos, pos.relative(dir));
-			case INVENTORY -> this.withInventories.add(pos);
+			case INVENTORY -> this.inventories.add(new Positioned<>(pos, conn.asInventory()));
 			default -> throw new IllegalStateException("Unsupported connection type "+conn.getType());
 			}
 		});
@@ -101,14 +118,13 @@ public class ConduitNetworkGraph{
 			final Map<BlockPos, ConduitBlockEntity> conduits = nodes.stream()
 					.collect(Collectors.toMap(Function.identity(), this.conduits::get,
 							(x, y) -> {throw new UnsupportedOperationException();}, Object2ObjectOpenHashMap::new));
-			final Set<BlockPos> withInventories =  this.withInventories.stream().filter(nodes::contains)
-					.collect(Collectors.toCollection(ObjectOpenHashSet::new));
+			final PositionedCache<Inventory> inventories =  this.inventories.filter(nodes::contains);
 			final MutableGraph<BlockPos> graph = GraphBuilder.undirected().allowsSelfLoops(false).build();
 			nodes.forEach(pos -> {
 				graph.addNode(pos);
 				this.connectionGraph.incidentEdges(pos).forEach(graph::putEdge);
 			});
-			return new ConduitNetworkGraph(this.type, conduits, withInventories, graph);
+			return new ConduitNetworkGraph(this.type, conduits, inventories, graph);
 		}).collect(Collectors.toList());
 	}
 
@@ -138,11 +154,11 @@ public class ConduitNetworkGraph{
 	@Override
 	public String toString() {
 		this.checkInvalid();
-		final StringBuilder builder = new StringBuilder("ConduitNetworkGraph[Type: ").append(this.type.getSerializedName())
+		final StringBuilder builder = new StringBuilder("ConduitNetworkGraph[Type: ").append(this.type.getRegistryName().getPath())
 				.append(", Conduit Positions: [");
 		this.conduits.keySet().forEach(pos -> {
 			builder.append(pos);
-			if(this.withInventories.contains(pos))
+			if(this.inventories.contains(pos))
 				builder.append('(').append(this.conduits.get(pos).getConnectedInventories(this.type).size()).append(')');
 			builder.append(',');
 		});

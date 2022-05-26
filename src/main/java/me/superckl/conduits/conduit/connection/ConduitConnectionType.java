@@ -1,6 +1,12 @@
 package me.superckl.conduits.conduit.connection;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
+
+import com.mojang.serialization.Codec;
 
 import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
@@ -15,6 +21,9 @@ public enum ConduitConnectionType implements StringRepresentable, ConduitConnect
 
 	CONDUIT("conduit"),
 	INVENTORY("inventory");
+
+	private static final Map<String, ConduitConnectionType> BY_NAME = Arrays.stream(ConduitConnectionType.values()).collect(Collectors.toMap(StringRepresentable::getSerializedName, v -> v));
+	public static final Codec<ConduitConnectionType> CODEC = StringRepresentable.fromEnum(ConduitConnectionType::values, ConduitConnectionType.BY_NAME::get);
 
 	private final String name;
 

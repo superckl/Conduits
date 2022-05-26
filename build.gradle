@@ -16,7 +16,7 @@ apply plugin: 'org.parchmentmc.librarian.forgegradle'
 apply plugin: 'eclipse'
 
 repositories{
-    
+    maven { url 'https://modmaven.dev/' }
 }
 
 
@@ -26,6 +26,8 @@ dependencies {
     //Lombok
     compileOnly "org.projectlombok:lombok:${lombok_version}"
     annotationProcessor "org.projectlombok:lombok:${lombok_version}"
+    
+    runtimeOnly fg.deobf("mekanism:Mekanism:${mekanism_version}")
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)

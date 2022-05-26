@@ -5,6 +5,9 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DynamicOps;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.util.StringRepresentable;
@@ -39,6 +42,20 @@ public class NBTUtil {
 			if (e.getSerializedName().equals(value))
 				return e;
 		return null;
+	}
+
+	public static <T, V> V encode(final DynamicOps<? extends V> ops, final T data, final Codec<? super T> codec) {
+		final var result = codec.encodeStart(ops, data).get();
+		if(result.right().isPresent())
+			throw new IllegalArgumentException(String.format("Failed to encode: %s", result.right().get().message()));
+		return result.left().get();
+	}
+
+	public static <T, V> T decode(final DynamicOps<V> ops, final V data, final Codec<? extends T> codec) {
+		final var result = codec.parse(ops, data).get();
+		if(result.right().isPresent())
+			throw new IllegalArgumentException(String.format("Failed to decode: %s", result.right().get().message()));
+		return result.left().get();
 	}
 
 }

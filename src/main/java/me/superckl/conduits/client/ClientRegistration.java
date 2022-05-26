@@ -2,15 +2,19 @@ package me.superckl.conduits.client;
 
 import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
+import me.superckl.conduits.ModConduits;
+import me.superckl.conduits.ModContainers;
 import me.superckl.conduits.client.model.ConduitModel;
-import me.superckl.conduits.conduit.ConduitType;
+import me.superckl.conduits.client.screen.InventoryConnectionScreen;
 import me.superckl.conduits.conduit.part.ConduitPartType;
+import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.event.TextureStitchEvent;
+import net.minecraftforge.client.gui.OverlayRegistry;
 import net.minecraftforge.client.model.ModelLoaderRegistry;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
@@ -21,8 +25,10 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 public class ClientRegistration {
 
 	@SubscribeEvent
-	public void clientSetup(final FMLClientSetupEvent e) {
+	public static void clientSetup(final FMLClientSetupEvent e) {
 		ItemBlockRenderTypes.setRenderLayer(ModBlocks.CONDUIT_BLOCK.get(), RenderType.cutout());
+		OverlayRegistry.registerOverlayTop("conduit_mixed_joint", new MixedJointOverlay());
+		MenuScreens.register(ModContainers.INVENTORY_CONNECTION.get(), InventoryConnectionScreen::new);
 	}
 
 	@SubscribeEvent
@@ -35,10 +41,10 @@ public class ClientRegistration {
 	public static void textureStitch(final TextureStitchEvent.Pre e) {
 		//We need to stitch the joint and segment textures because they're not on any model face by default
 		//(They're placed onto the joints/segments by the baked model)
-		for(final ConduitType type:ConduitType.values()) {
-			e.addSprite(new ResourceLocation(Conduits.MOD_ID, ConduitPartType.JOINT.path(type)));
-			e.addSprite(new ResourceLocation(Conduits.MOD_ID, ConduitPartType.SEGMENT.path(type)));
-		}
+		ModConduits.TYPES.getEntries().forEach(obj -> {
+			e.addSprite(new ResourceLocation(Conduits.MOD_ID, ConduitPartType.JOINT.path(obj)));
+			e.addSprite(new ResourceLocation(Conduits.MOD_ID, ConduitPartType.SEGMENT.path(obj)));
+		});
 		e.addSprite(new ResourceLocation(Conduits.MOD_ID, ConduitPartType.JOINT.path(null)));
 	}
 

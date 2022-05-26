@@ -1,11 +1,11 @@
 package me.superckl.conduits.common.block;
 
 import java.util.Collection;
-import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.Getter;
 import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
@@ -36,7 +36,7 @@ public class ConduitBlockEntity extends BlockEntity{
 
 	@Getter
 	private final ConduitConnectionMap connections = ConduitConnectionMap.make();
-	private final Map<ConduitType, ConduitNetwork> networks = new EnumMap<>(ConduitType.class);
+	private final Map<ConduitType, ConduitNetwork> networks = new Object2ObjectOpenHashMap<>();
 
 	public ConduitBlockEntity(final BlockPos pWorldPosition, final BlockState pBlockState) {
 		super(ModBlocks.CONDUIT_ENTITY.get(), pWorldPosition, pBlockState);
@@ -48,7 +48,7 @@ public class ConduitBlockEntity extends BlockEntity{
 	 * @param placer
 	 */
 	public void onPlaced(final ConduitItem placer) {
-		this.connections.setTier(placer.getType(), placer.getTier());
+		this.connections.setTier(placer.getType().get(), placer.getTier());
 		this.discoverNeighbors();
 		this.connectionChange();
 		ConduitNetwork.mergeOrEstablish(this);
@@ -207,11 +207,15 @@ public class ConduitBlockEntity extends BlockEntity{
 	}
 
 	private void connectionChange() {
-		this.setChanged();
-		this.sendUpdate();
+		this.settingsChange();
 		this.requestModelDataUpdate();
 
 		this.notifyNetworks();
+	}
+
+	public void settingsChange() {
+		this.setChanged();
+		this.sendUpdate();
 	}
 
 	private void notifyNetworks() {

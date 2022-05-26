@@ -7,10 +7,10 @@ import com.mojang.math.Vector3f;
 
 import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
+import me.superckl.conduits.ModConduits;
 import me.superckl.conduits.ModItems;
 import me.superckl.conduits.conduit.ConduitShapeHelper;
 import me.superckl.conduits.conduit.ConduitShapeHelper.Boxf;
-import me.superckl.conduits.conduit.ConduitType;
 import me.superckl.conduits.conduit.part.ConduitPartType;
 import net.minecraft.core.Direction;
 import net.minecraft.data.DataGenerator;
@@ -76,10 +76,10 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 		conduitBuilder.texture("mixed_joint", ConduitPartType.MIXED_JOINT.path(null));
 		conduitBuilder.texture("connection", ConduitPartType.MIXED_JOINT.path(null));
 		conduitBuilder.texture("connected", ConduitPartType.JOINT.path(null));
-		for(final ConduitType type:ConduitType.values()) {
-			conduitBuilder.texture("unconnected_"+type.getSerializedName(), ConduitPartType.JOINT.path(type));
-			conduitBuilder.texture("segment_"+type.getSerializedName(), ConduitPartType.SEGMENT.path(type));
-		}
+		ModConduits.TYPES.getEntries().forEach(obj -> {
+			conduitBuilder.texture("unconnected_"+obj.getId().getPath(), ConduitPartType.JOINT.path(obj));
+			conduitBuilder.texture("segment_"+obj.getId().getPath(), ConduitPartType.SEGMENT.path(obj));
+		});
 		final BlockModelBuilder.TransformsBuilder transforms = conduitBuilder.transforms();
 		transforms.transform(Perspective.GUI).rotation(30F, 225F, 0F).scale(0.75F).end();
 
@@ -99,11 +99,11 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 
 	private BlockModelBuilder segmentElement(final BlockModelBuilder builder, final int index, final Vector3f offset) {
 		return this.sizedElement(builder, ConduitShapeHelper.modelBox(ConduitPartType.SEGMENT), offset)
-				.face(Direction.NORTH).texture("#segment_"+index).uvs(0, 0, 13, 4).rotation(FaceRotation.CLOCKWISE_90).end()//is UV necessary?
-				.face(Direction.SOUTH).texture("#segment_"+index).uvs(0, 0, 13, 4).rotation(FaceRotation.CLOCKWISE_90).end()
-				.face(Direction.EAST).texture("#segment_"+index).uvs(0, 0, 13, 4).rotation(FaceRotation.CLOCKWISE_90).end()
-				.face(Direction.WEST).texture("#segment_"+index).uvs(0, 0, 13, 4).rotation(FaceRotation.CLOCKWISE_90).end()
-				.face(Direction.UP).texture("#segment_"+index).uvs(0, 0, 2, 2).end().end();
+				.face(Direction.NORTH).texture("#segment_"+index).uvs(0, 0, 13.25F, 4.25F).rotation(FaceRotation.CLOCKWISE_90).end()//is UV necessary?
+				.face(Direction.SOUTH).texture("#segment_"+index).uvs(0, 0, 13.25F, 4.25F).rotation(FaceRotation.CLOCKWISE_90).end()
+				.face(Direction.EAST).texture("#segment_"+index).uvs(0, 0, 13.25F, 4.25F).rotation(FaceRotation.CLOCKWISE_90).end()
+				.face(Direction.WEST).texture("#segment_"+index).uvs(0, 0, 13.25F, 4.25F).rotation(FaceRotation.CLOCKWISE_90).end()
+				.face(Direction.UP).texture("#segment_"+index).uvs(1, 0, 2.25F, 1.25F).end().end();
 	}
 
 	private BlockModelBuilder jointElement(final BlockModelBuilder builder, final int index, final Vector3f offset) {

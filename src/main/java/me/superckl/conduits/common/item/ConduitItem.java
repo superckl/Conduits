@@ -36,28 +36,32 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.client.IItemRenderProperties;
 import net.minecraftforge.client.model.data.IModelData;
 import net.minecraftforge.client.model.data.ModelDataMap;
+import net.minecraftforge.common.util.Lazy;
+import net.minecraftforge.registries.RegistryObject;
 
 @Getter
 public class ConduitItem extends BlockItem{
 
-	private final ConduitType type;
+	private final RegistryObject<ConduitType> type;
 	private final ConduitTier tier;
 	private final String descriptionId;
 
 	@Getter
-	private final IModelData renderData;
+	private final Lazy<IModelData> renderData;
 
-	public ConduitItem(final ConduitType type, final ConduitTier tier) {
+	public ConduitItem(final RegistryObject<ConduitType> type, final ConduitTier tier) {
 		super(ModBlocks.CONDUIT_BLOCK.get(), new Properties().tab(Conduits.CONDUIT_TAB));
 		this.type = type;
 		this.tier = tier;
-		this.descriptionId = Util.makeDescriptionId("item", new ResourceLocation(Conduits.MOD_ID, "conduit/"+type.getSerializedName()+"/"+tier.getSerializedName()));
+		this.descriptionId = Util.makeDescriptionId("item", new ResourceLocation(Conduits.MOD_ID, "conduit/"+type.getId().getPath()+"/"+tier.getSerializedName()));
 
-		final ConduitConnectionMap data = ConduitConnectionMap.make();
-		data.setTier(type, tier);
-		data.makeConnection(type, Direction.WEST, ConduitConnectionType.CONDUIT.apply(type, Direction.WEST, null));
-		data.makeConnection(type, Direction.EAST, ConduitConnectionType.CONDUIT.apply(type, Direction.EAST, null));
-		this.renderData = new ModelDataMap.Builder().withInitial(ConduitBlockEntity.CONNECTION_PROPERTY, data).build();
+		this.renderData = Lazy.of(() -> {
+			final ConduitConnectionMap data = ConduitConnectionMap.make();
+			data.setTier(type.get(), tier);
+			data.makeConnection(type.get(), Direction.WEST, ConduitConnectionType.CONDUIT.apply(type.get(), Direction.WEST, null));
+			data.makeConnection(type.get(), Direction.EAST, ConduitConnectionType.CONDUIT.apply(type.get(), Direction.EAST, null));
+			return new ModelDataMap.Builder().withInitial(ConduitBlockEntity.CONNECTION_PROPERTY, data).build();
+		});
 	}
 
 	/**
@@ -88,7 +92,7 @@ public class ConduitItem extends BlockItem{
 		final BlockPos pos = context.getClickedPos();
 		final BlockEntity be = level.getBlockEntity(pos);
 		if(be instanceof final ConduitBlockEntity conduit) {
-			final ConduitTier tier = conduit.trySetTier(this.type, this.tier).orElse(null);
+			final ConduitTier tier = conduit.trySetTier(this.type.get(), this.tier).orElse(null);
 			if(tier == this.tier)
 				return super.onItemUseFirst(stack, context);
 			level.playSound(context.getPlayer(), pos, this.getPlaceSound(level.getBlockState(pos), level, pos, context.getPlayer()), SoundSource.BLOCKS,
@@ -96,7 +100,7 @@ public class ConduitItem extends BlockItem{
 			if(tier == null || context.getLevel().isClientSide)
 				return InteractionResult.sidedSuccess(context.getLevel().isClientSide);
 			final Player player = context.getPlayer();
-			final Item toDrop = ModItems.CONDUITS.get(this.type).get(tier).get();
+			final Item toDrop = ModItems.CONDUITS.get(this.type.getId()).get(tier).get();
 			if(player != null) {
 				if(!player.isCreative()) {
 					stack.shrink(1);

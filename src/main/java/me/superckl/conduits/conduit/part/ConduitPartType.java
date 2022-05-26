@@ -3,8 +3,8 @@ package me.superckl.conduits.conduit.part;
 import javax.annotation.Nullable;
 
 import lombok.RequiredArgsConstructor;
-import me.superckl.conduits.conduit.ConduitType;
 import net.minecraft.util.StringRepresentable;
+import net.minecraftforge.registries.RegistryObject;
 
 @RequiredArgsConstructor
 public enum ConduitPartType implements StringRepresentable{
@@ -21,10 +21,10 @@ public enum ConduitPartType implements StringRepresentable{
 		return this.name;
 	}
 
-	public String path(@Nullable final ConduitType type) {
+	public String path(@Nullable final RegistryObject<?> type) {
 		final StringBuilder builder = new StringBuilder("conduit/");
 		if(this.typed && type != null)
-			builder.append(type.getSerializedName()).append('_');
+			builder.append(type.getId().getPath()).append('_');
 		return builder.append(this.getSerializedName()).toString();
 	}
 }

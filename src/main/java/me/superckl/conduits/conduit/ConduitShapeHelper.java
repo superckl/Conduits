@@ -145,7 +145,7 @@ public class ConduitShapeHelper {
 	}
 
 	public static ConduitType[] sort(final Collection<ConduitType> types) {
-		return types.stream().sorted(ConduitType::compareTo).toArray(ConduitType[]::new);
+		return types.stream().sorted().toArray(ConduitType[]::new);
 	}
 
 	public static record Boxf(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {

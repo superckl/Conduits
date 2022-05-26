@@ -5,11 +5,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitType;
+import me.superckl.conduits.conduit.connection.ConduitConnection.Inventory;
+import me.superckl.conduits.util.Positioned;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 
@@ -109,6 +113,7 @@ public class ConduitNetwork {
 		if(conduit.getLevel().isClientSide)
 			return;
 		this.graph.removeNode(conduit.getBlockPos());
+		this.changedBEs.remove(conduit);
 		if(this.graph.isEmpty())
 			this.invalidate();
 		else
@@ -189,11 +194,14 @@ public class ConduitNetwork {
 		if(this.graph.isInvalid())
 			return;
 		this.rescan();
+		final Pair<List<Positioned<Inventory>>, List<Positioned<Inventory>>> inventories = this.graph.gatherInventories(this.type);
+		final List<Positioned<Inventory>> providing = inventories.getRight();
+		providing.sort(Positioned.valueComparator(Inventory.PROVIDE_PRIORITY_COMPARATOR));
 	}
 
 	@Override
 	public String toString() {
-		return new StringBuilder("ConduitNetwork[Type: ").append(this.type.getSerializedName())
+		return new StringBuilder("ConduitNetwork[Type: ").append(this.type.getRegistryName().getPath())
 				.append(", Graph: ").append(this.graph).append("]").toString();
 	}
 

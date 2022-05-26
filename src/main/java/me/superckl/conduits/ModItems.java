@@ -3,10 +3,11 @@ package me.superckl.conduits;
 import java.util.EnumMap;
 import java.util.Map;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.superckl.conduits.common.item.ConduitItem;
 import me.superckl.conduits.common.item.WrenchItem;
 import me.superckl.conduits.conduit.ConduitTier;
-import me.superckl.conduits.conduit.ConduitType;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -16,15 +17,16 @@ public class ModItems {
 
 	public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, Conduits.MOD_ID);
 
-	public static final Map<ConduitType, Map<ConduitTier, RegistryObject<ConduitItem>>> CONDUITS = new EnumMap<>(ConduitType.class);
+	public static final Map<ResourceLocation, Map<ConduitTier, RegistryObject<ConduitItem>>> CONDUITS = new Object2ObjectOpenHashMap<>();
 	public static final RegistryObject<WrenchItem> WRENCH = ModItems.ITEMS.register("wrench", WrenchItem::new);
 
 	static {
-		for(final ConduitType type:ConduitType.values()) {
-			final Map<ConduitTier, RegistryObject<ConduitItem>> typed = ModItems.CONDUITS.computeIfAbsent(type, x -> new EnumMap<>(ConduitTier.class));
+		ModConduits.TYPES.getEntries().forEach(obj -> {
+			final Map<ConduitTier, RegistryObject<ConduitItem>> typed = ModItems.CONDUITS.computeIfAbsent(obj.getId(),
+					x -> new EnumMap<>(ConduitTier.class));
 			for(final ConduitTier tier:ConduitTier.values())
-				typed.put(tier, ModItems.ITEMS.register(type.getSerializedName()+"_conduit_"+tier.getSerializedName(),
-						() -> new ConduitItem(type, tier)));
-		}
+				typed.put(tier, ModItems.ITEMS.register(obj.getId().getPath()+"_conduit_"+tier.getSerializedName(),
+						() -> new ConduitItem(obj, tier)));
+		});
 	}
 }

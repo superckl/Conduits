@@ -11,6 +11,7 @@ import com.mojang.math.Vector3f;
 
 import it.unimi.dsi.fastutil.booleans.BooleanObjectPair;
 import lombok.RequiredArgsConstructor;
+import me.superckl.conduits.ModConduits;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitShapeHelper;
 import me.superckl.conduits.conduit.ConduitShapeHelper.Boxf;
@@ -37,12 +38,15 @@ import net.minecraftforge.client.model.IModelBuilder;
 import net.minecraftforge.client.model.IModelConfiguration;
 import net.minecraftforge.client.model.data.EmptyModelData;
 import net.minecraftforge.client.model.data.IModelData;
+import net.minecraftforge.common.util.Lazy;
 
 @RequiredArgsConstructor
 public class ConduitBakedModel implements BakedModel{
 
-	private static final ConduitConnectionMap DEFAULT = Util.make(ConduitConnectionMap.make(),
-			data -> data.setTier(ConduitType.ENERGY, ConduitTier.EARLY));
+	private static final Lazy<ConduitConnectionMap> DEFAULT = Lazy.of(() ->
+	Util.make(ConduitConnectionMap.make(),
+			data -> data.setTier(ModConduits.ENERGY.get(), ConduitTier.EARLY))
+			);
 
 	private final ConduitParts<? extends WrappedVanillaProxy> parts;
 	private final IModelConfiguration owner;
@@ -63,7 +67,7 @@ public class ConduitBakedModel implements BakedModel{
 	public List<BakedQuad> getQuads(final BlockState state, final Direction side, final Random rand, final IModelData extraData) {
 		if(side != null)
 			return Collections.emptyList();
-		ConduitConnectionMap data = ConduitBakedModel.DEFAULT;
+		ConduitConnectionMap data = ConduitBakedModel.DEFAULT.get();
 		if(extraData.hasProperty(ConduitBlockEntity.CONNECTION_PROPERTY))
 			data = extraData.getData(ConduitBlockEntity.CONNECTION_PROPERTY);
 		return ConduitUtil.copyComputeIfAbsent(this.modelCache, data, x -> this.bake(x).getQuads(state, null, rand, extraData));
@@ -79,7 +83,7 @@ public class ConduitBakedModel implements BakedModel{
 		parts.segments().values().forEach(segment -> {
 			final ConduitType type = segment.conduitType();
 			//Texture segments to their corresponding type
-			final BiFunction<Direction, String, String> texturer = (x, y) -> "#segment_"+type.getSerializedName();
+			final BiFunction<Direction, String, String> texturer = (x, y) -> "#segment_"+type.getRegistryName().getPath();
 			this.addQuads(segment, texturer, builder);
 		});
 
@@ -100,7 +104,7 @@ public class ConduitBakedModel implements BakedModel{
 					if(passThrough == null && data.hasConnection(type, faceDir))
 						return "#connected";
 					//Default unconnected texture
-					return "#unconnected_"+type.getSerializedName();
+					return "#unconnected_"+type.getRegistryName().getPath();
 				};
 				this.addQuads(joint, texturer, builder);
 			});

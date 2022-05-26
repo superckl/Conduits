@@ -5,35 +5,44 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.math.IntMath;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import me.superckl.conduits.ModConduits;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitTier;
 import me.superckl.conduits.conduit.ConduitType;
-import me.superckl.conduits.util.NBTUtil;
+import me.superckl.conduits.util.ConduitUtil;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 
-@RequiredArgsConstructor
 @EqualsAndHashCode
 @Getter
 public class ConduitConnectionState{
 
-	private static final String TIER_KEY = "tier";
-	private static final String CONNECTION_KEY = "connection";
+	public static final Codec<ConduitConnectionState> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+			ModConduits.TYPES_CODEC.fieldOf("conduitType").forGetter(ConduitConnectionState::getType),
+			ConduitTier.CODEC.fieldOf("tier").forGetter(ConduitConnectionState::getTier),
+			ConduitUtil.generalizedMapCodec(Direction.CODEC, ConduitConnection.CODEC,
+					() -> new EnumMap<>(Direction.class)).fieldOf("connections").forGetter(ConduitConnectionState::getConnections))
+			.apply(instance, ConduitConnectionState::new));
 
 	private final ConduitType type;
 	private final ConduitTier tier;
 	private final Map<Direction, ConduitConnection> connections;
 
-	public CompoundTag serialize() {
-		final CompoundTag tag = new CompoundTag();
-		tag.putString(ConduitConnectionState.TIER_KEY, this.tier.getSerializedName());
-		tag.put(ConduitConnectionState.CONNECTION_KEY, NBTUtil.serializeMap(this.connections, ConduitConnection::tag));
-		return tag;
+	public ConduitConnectionState(final ConduitType type, final ConduitTier tier, final Map<Direction, ConduitConnection> connections) {
+
+		this.type = type;
+		this.tier = tier;
+		this.connections = new EnumMap<>(Direction.class);
+		this.connections.putAll(connections);
+	}
+
+	public void setOwners(final ConduitBlockEntity owner) {
+		this.connections.values().stream().filter(conn -> conn.getConnectionType() == ConduitConnectionType.INVENTORY)
+		.map(ConduitConnection::asInventory).forEach(inv -> inv.setOwner(owner));
 	}
 
 	public boolean makeConnection(final Direction dir, final ConduitConnection conn) {
@@ -70,17 +79,6 @@ public class ConduitConnectionState{
 	public static int states() {
 		final int dirStates = IntMath.pow(ConduitConnectionType.values().length+1, Direction.values().length);
 		return ConduitTier.values().length*dirStates;
-	}
-
-	public static ConduitConnectionState from(final Tag tag, final ConduitType type, final ConduitBlockEntity owner) {
-		if(tag instanceof final CompoundTag comp) {
-			final ConduitTier tier = NBTUtil.enumFromString(ConduitTier.class, comp.getString(ConduitConnectionState.TIER_KEY));
-			final Map<Direction, ConduitConnection> connections = NBTUtil.deserializeMap(comp.getCompound(ConduitConnectionState.CONNECTION_KEY), () -> new EnumMap<>(Direction.class),
-					Direction.class, (fromConduit, typeTag) -> ConduitConnection.fromTag((CompoundTag) typeTag,
-							connType -> connType.apply(type, fromConduit, owner)));
-			return new ConduitConnectionState(type, tier, connections);
-		}
-		return null;
 	}
 
 }
