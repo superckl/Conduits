@@ -2,6 +2,8 @@ package me.superckl.conduits.conduit;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 import com.mojang.serialization.Codec;
 
 import me.superckl.conduits.common.block.ConduitBlockEntity;
@@ -23,12 +25,17 @@ public abstract class ConduitType extends ForgeRegistryEntry<ConduitType> implem
 		return this.displayName;
 	}
 
+	public final ConduitConnection establishConnection(final ConduitConnectionType connType,
+			final Direction fromConduit, @Nullable final ConduitBlockEntity owner){
+		return switch(connType) {
+		case CONDUIT -> new ConduitConnection.Conduit(this);
+		case INVENTORY -> this.establishConnection(fromConduit, owner);
+		default -> null;
+		};
+	}
+
 	public abstract boolean canConnect(final Direction dir, final BlockEntity be);
-	/**
-	 * This should only be called through {@link ConduitConnectionType#apply}
-	 */
-	@Deprecated
-	public abstract ConduitConnection.Inventory establishConnection(final Direction dir, final ConduitBlockEntity owner);
+	protected abstract ConduitConnection.Inventory establishConnection(final Direction dir, final ConduitBlockEntity owner);
 	protected abstract Codec<? extends ConduitConnection.Inventory> inventoryCodec();
 
 	public final Codec<? extends ConduitConnection> getCodec(final ConduitConnectionType connType){

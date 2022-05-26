@@ -176,7 +176,8 @@ public class ConduitBlockEntity extends BlockEntity{
 			this.discoverNeighbors();
 			return Optional.empty();
 		}
-		final ConduitConnection.Inventory connection = ConduitConnectionType.INVENTORY.apply(type, dir, this).asInventory();
+
+		final ConduitConnection.Inventory connection = type.establishConnection(ConduitConnectionType.INVENTORY, dir, this).asInventory();
 		connection.resolve();
 		return Optional.of(connection);
 	}
@@ -187,7 +188,7 @@ public class ConduitBlockEntity extends BlockEntity{
 	}
 
 	private boolean makeConnection(final ConduitType type, final Direction dir, final ConduitConnectionType con) {
-		final ConduitConnection connection = con.apply(type, dir, this);
+		final ConduitConnection connection = type.establishConnection(con, dir, this);
 		if(this.connections.makeConnection(type, dir, connection)) {
 			connection.resolve();
 			this.connectionChange();

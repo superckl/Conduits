@@ -34,7 +34,7 @@ public abstract class CapabilityConduitType<T> extends ConduitType{
 		}
 
 		@Override
-		public Inventory establishConnection(final Direction dir, final ConduitBlockEntity owner) {
+		protected Inventory establishConnection(final Direction dir, final ConduitBlockEntity owner) {
 			return new CapabilityInventory.Item(dir, new InventoryConnectionSettings()).setOwner(owner);
 		}
 
@@ -52,7 +52,7 @@ public abstract class CapabilityConduitType<T> extends ConduitType{
 		}
 
 		@Override
-		public Inventory establishConnection(final Direction dir, final ConduitBlockEntity owner) {
+		protected Inventory establishConnection(final Direction dir, final ConduitBlockEntity owner) {
 			return new CapabilityInventory.Energy(dir, new InventoryConnectionSettings()).setOwner(owner);
 		}
 
@@ -70,7 +70,7 @@ public abstract class CapabilityConduitType<T> extends ConduitType{
 		}
 
 		@Override
-		public Inventory establishConnection(final Direction dir, final ConduitBlockEntity owner) {
+		protected Inventory establishConnection(final Direction dir, final ConduitBlockEntity owner) {
 			return new CapabilityInventory.Fluid(dir, new InventoryConnectionSettings()).setOwner(owner);
 		}
 

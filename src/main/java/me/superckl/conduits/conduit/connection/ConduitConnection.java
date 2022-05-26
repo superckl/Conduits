@@ -2,8 +2,6 @@ package me.superckl.conduits.conduit.connection;
 
 import java.util.Comparator;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Objects;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -68,7 +66,7 @@ public abstract class ConduitConnection {
 				ModConduits.TYPES_CODEC.fieldOf("conduitType").forGetter(Conduit::getType))
 				.apply(instance, Conduit::new));
 
-		protected Conduit(final ConduitType type) {
+		public Conduit(final ConduitType type) {
 			super(type);
 		}
 
@@ -81,45 +79,44 @@ public abstract class ConduitConnection {
 
 	public static abstract class Inventory extends ConduitConnection{
 
-		public static final Comparator<Inventory> ACCEPT_PRIORITY_COMPARATOR =
-				(x, y) -> Integer.compare(x.getSettings().getAcceptPriority(), y.getSettings().getAcceptPriority());
+		public static final Comparator<Inventory> ACCEPT_PRIORITY_COMPARATOR = (x, y) ->
+		Integer.compare(x.getSettings().getAcceptPriority(), y.getSettings().getAcceptPriority());
 
-				public static final Comparator<Inventory> PROVIDE_PRIORITY_COMPARATOR =
-						(x, y) -> Integer.compare(x.getSettings().getProvidePriority(), y.getSettings().getProvidePriority());
+		public static final Comparator<Inventory> PROVIDE_PRIORITY_COMPARATOR = (x, y) ->
+		Integer.compare(x.getSettings().getProvidePriority(), y.getSettings().getProvidePriority());
 
-						protected ConduitBlockEntity owner;
-						protected final Direction fromDir;
+		protected ConduitBlockEntity owner;
+		protected final Direction fromDir;
 
-						//TODO save these in the codecs
-						@Getter
-						private final InventoryConnectionSettings settings;
+		@Getter
+		private final InventoryConnectionSettings settings;
 
-						protected Inventory(final ConduitType type, final Direction fromConduit, final InventoryConnectionSettings settings) {
-							super(type);
-							this.fromDir = fromConduit;
-							this.settings = settings.copy(this::onValueChange);
-						}
+		protected Inventory(final ConduitType type, final Direction fromConduit, final InventoryConnectionSettings settings) {
+			super(type);
+			this.fromDir = fromConduit;
+			this.settings = settings.copy(this::onValueChange);
+		}
 
-						public void invalidate() {
-							if(!this.owner.isRemoved())
-								this.owner.inventoryInvalidated(this.fromDir, this);
-						}
+		public void invalidate() {
+			if(!this.owner.isRemoved())
+				this.owner.inventoryInvalidated(this.fromDir, this);
+		}
 
-						@Override
-						public ConduitConnection copyForMap() {
-							return new DummyInventoryConnection(this.getType());
-						}
+		@Override
+		public ConduitConnection copyForMap() {
+			return new DummyInventoryConnection(this.getType());
+		}
 
-						protected void onValueChange(final InventoryConnectionSettings.Setting setting) {
-							this.owner.settingsChange();
-						}
+		protected void onValueChange(final InventoryConnectionSettings.Setting setting) {
+			this.owner.settingsChange();
+		}
 
-						public Inventory setOwner(final ConduitBlockEntity owner) {
-							if(this.owner != null)
-								throw new IllegalStateException("Connection already has owner!");
-							this.owner = owner;
-							return this;
-						}
+		public Inventory setOwner(final ConduitBlockEntity owner) {
+			if(this.owner != null)
+				throw new IllegalStateException("Connection already has owner!");
+			this.owner = owner;
+			return this;
+		}
 
 	}
 
@@ -144,13 +141,6 @@ public abstract class ConduitConnection {
 			throw new UnsupportedOperationException();
 		}
 
-	}
-
-	@FunctionalInterface
-	public interface ConduitConnectionFactory{
-
-		ConduitConnection apply(ConduitType type, final Direction fromConduit,
-				@Nullable ConduitBlockEntity owner);
 	}
 
 	private static record Identifier(ConduitConnectionType connectionType, ConduitType type) {

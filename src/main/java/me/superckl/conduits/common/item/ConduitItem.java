@@ -58,8 +58,8 @@ public class ConduitItem extends BlockItem{
 		this.renderData = Lazy.of(() -> {
 			final ConduitConnectionMap data = ConduitConnectionMap.make();
 			data.setTier(type.get(), tier);
-			data.makeConnection(type.get(), Direction.WEST, ConduitConnectionType.CONDUIT.apply(type.get(), Direction.WEST, null));
-			data.makeConnection(type.get(), Direction.EAST, ConduitConnectionType.CONDUIT.apply(type.get(), Direction.EAST, null));
+			data.makeConnection(type.get(), Direction.WEST, type.get().establishConnection(ConduitConnectionType.CONDUIT, Direction.WEST, null));
+			data.makeConnection(type.get(), Direction.EAST, type.get().establishConnection(ConduitConnectionType.CONDUIT, Direction.EAST, null));
 			return new ModelDataMap.Builder().withInitial(ConduitBlockEntity.CONNECTION_PROPERTY, data).build();
 		});
 	}
