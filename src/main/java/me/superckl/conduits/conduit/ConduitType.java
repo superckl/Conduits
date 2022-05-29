@@ -9,13 +9,14 @@ import com.mojang.serialization.Codec;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.connection.ConduitConnection;
 import me.superckl.conduits.conduit.connection.ConduitConnectionType;
+import me.superckl.conduits.conduit.network.inventory.TransferrableQuantity;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.registries.ForgeRegistryEntry;
 
-public abstract class ConduitType extends ForgeRegistryEntry<ConduitType> implements Comparable<ConduitType>{
+public abstract class ConduitType<T extends TransferrableQuantity> extends ForgeRegistryEntry<ConduitType<T>> implements Comparable<ConduitType<T>>{
 
 	private Component displayName;
 
@@ -35,8 +36,8 @@ public abstract class ConduitType extends ForgeRegistryEntry<ConduitType> implem
 	}
 
 	public abstract boolean canConnect(final Direction dir, final BlockEntity be);
-	protected abstract ConduitConnection.Inventory establishConnection(final Direction dir, final ConduitBlockEntity owner);
-	protected abstract Codec<? extends ConduitConnection.Inventory> inventoryCodec();
+	protected abstract ConduitConnection.Inventory<T> establishConnection(final Direction dir, final ConduitBlockEntity owner);
+	protected abstract Codec<? extends ConduitConnection.Inventory<T>> inventoryCodec();
 
 	public final Codec<? extends ConduitConnection> getCodec(final ConduitConnectionType connType){
 		return switch(connType) {
@@ -52,7 +53,7 @@ public abstract class ConduitType extends ForgeRegistryEntry<ConduitType> implem
 	}
 
 	@Override
-	public int compareTo(final ConduitType o) {
+	public int compareTo(final ConduitType<T> o) {
 		return this.getRegistryName().compareTo(o.getRegistryName());
 	}
 

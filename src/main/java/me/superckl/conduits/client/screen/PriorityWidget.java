@@ -2,6 +2,7 @@ package me.superckl.conduits.client.screen;
 
 import java.util.function.IntConsumer;
 
+import com.google.common.collect.ImmutableList;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 
@@ -35,9 +36,9 @@ public class PriorityWidget extends AbstractWidget{
 		this.onChange = onValueChange;
 		this.value = initial;
 		this.decreaseButton = new DecalButton.Static(owner, this.x+4, this.y+this.font.lineHeight+1, 8, 8,
-				new ButtonImageProvider.Static(0, 112, TextComponent.EMPTY, 28, 28), x -> {this.changeValue(-1);});
+				new ButtonImageProvider.Static(0, 112, ImmutableList.of(TextComponent.EMPTY), 28, 28), x -> {this.changeValue(-1);});
 		this.increaseButton = new DecalButton.Static(owner, this.x+this.width-12, this.y+this.font.lineHeight+1, 8, 8,
-				new ButtonImageProvider.Static(0, 140, TextComponent.EMPTY, 28, 28), x -> {this.changeValue(1);});
+				new ButtonImageProvider.Static(0, 140, ImmutableList.of(TextComponent.EMPTY), 28, 28), x -> {this.changeValue(1);});
 		this.decreaseButton.active = false;
 	}
 

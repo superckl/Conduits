@@ -81,7 +81,7 @@ public class ConduitBakedModel implements BakedModel{
 
 		//Segments
 		parts.segments().values().forEach(segment -> {
-			final ConduitType type = segment.conduitType();
+			final ConduitType<?> type = segment.conduitType();
 			//Texture segments to their corresponding type
 			final BiFunction<Direction, String, String> texturer = (x, y) -> "#segment_"+type.getRegistryName().getPath();
 			this.addQuads(segment, texturer, builder);
@@ -94,7 +94,7 @@ public class ConduitBakedModel implements BakedModel{
 		else {
 			final Direction passThrough = jointState.right();
 			parts.joints().forEach(joint -> {
-				final ConduitType type = joint.conduitType();
+				final ConduitType<?> type = joint.conduitType();
 				final BiFunction<Direction, String, String> texturer = (faceDir, text) -> {
 					//The joint model will be rotated to the passthrough direction
 					//so we retexture the "origin" faces, and only down if the passthrough is actually passing through

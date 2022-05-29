@@ -34,7 +34,7 @@ public class InventoryConnectionScreen extends AbstractContainerScreen<Inventory
 
 	private final List<AbstractWidget> widgets = new ArrayList<>();
 	private final List<TabWidget> tabs = new ArrayList<>();
-	private final ConduitType[] modes;
+	private final ConduitType<?>[] modes;
 	private int modeIndex = 0;
 
 	private EnumButton<RedstoneMode> acceptMode;

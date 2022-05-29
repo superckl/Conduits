@@ -104,8 +104,8 @@ public class ConduitShapeHelper {
 		};
 	}
 
-	public static boolean isPassthrough(final Map<ConduitType, Pair<ConduitTier, ConduitConnection>> first,
-			final Map<ConduitType, Pair<ConduitTier, ConduitConnection>> second) {
+	public static boolean isPassthrough(final Map<ConduitType<?>, Pair<ConduitTier, ConduitConnection>> first,
+			final Map<ConduitType<?>, Pair<ConduitTier, ConduitConnection>> second) {
 		return first.keySet().equals(second.keySet());
 	}
 
@@ -144,7 +144,7 @@ public class ConduitShapeHelper {
 		return FloatFloatPair.of((float) (maxX-minX)+conduitSize, (float) (maxZ-minZ)+conduitSize);
 	}
 
-	public static ConduitType[] sort(final Collection<ConduitType> types) {
+	public static ConduitType<?>[] sort(final Collection<ConduitType<?>> types) {
 		return types.stream().sorted().toArray(ConduitType[]::new);
 	}
 

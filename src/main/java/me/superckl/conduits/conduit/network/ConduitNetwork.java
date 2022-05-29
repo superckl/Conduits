@@ -10,26 +10,28 @@ import org.apache.commons.lang3.tuple.Pair;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitType;
 import me.superckl.conduits.conduit.connection.ConduitConnection.Inventory;
+import me.superckl.conduits.conduit.network.inventory.TransferrableQuantity;
 import me.superckl.conduits.util.Positioned;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 
-public class ConduitNetwork {
+public class ConduitNetwork<T extends TransferrableQuantity> {
 
 	private final Level level;
-	private final ConduitType type;
-	private final ConduitNetworkGraph graph;
+	private final ConduitType<T> type;
+	private final ConduitNetworkGraph<T> graph;
 
 	private final List<ConduitBlockEntity> changedBEs = new ArrayList<>();
 
-	public ConduitNetwork(final Level level, final ConduitType type) {
-		this(level, type, new ConduitNetworkGraph(type));
+	public ConduitNetwork(final Level level, final ConduitType<T> type) {
+		this(level, type, new ConduitNetworkGraph<>(type));
 	}
 
-	private ConduitNetwork(final Level level, final ConduitType type, final ConduitNetworkGraph graph) {
+	private ConduitNetwork(final Level level, final ConduitType<T> type, final ConduitNetworkGraph<T> graph) {
 
 		this.level = level;
 		this.type = type;
@@ -44,7 +46,7 @@ public class ConduitNetwork {
 	 * WARNING: No validation is done on the state of this network after the merge, though it should be valid
 	 * @return This network for method chaining
 	 */
-	private ConduitNetwork accept(final ConduitBlockEntity conduit, final boolean connectionChange) {
+	private ConduitNetwork<T> accept(final ConduitBlockEntity conduit, final boolean connectionChange) {
 		final BlockPos pos = conduit.getBlockPos();
 		this.graph.addNode(pos, conduit);
 		conduit.setNetwork(this.type, this);
@@ -58,7 +60,7 @@ public class ConduitNetwork {
 	 * WARNING: No validation is done on the state of this network after the merge.
 	 * @return This network for method chaining
 	 */
-	private ConduitNetwork merge(final ConduitNetwork other) {
+	private ConduitNetwork<T> merge(final ConduitNetwork<T> other) {
 		if(this == other)
 			return this;
 		if(this.type != other.type)
@@ -90,7 +92,7 @@ public class ConduitNetwork {
 	 * @return the merged network that should be used for subsequent method calls. This will
 	 * be one of the passed networks.
 	 */
-	private static ConduitNetwork mergeSmaller(final ConduitNetwork network1, final ConduitNetwork network2) {
+	private static <T extends TransferrableQuantity> ConduitNetwork<T> mergeSmaller(final ConduitNetwork<T> network1, final ConduitNetwork<T> network2) {
 		if(network1 == network2)
 			return network1;
 		if(network1.graph.size() > network2.graph.size())
@@ -120,20 +122,20 @@ public class ConduitNetwork {
 			this.splitDisconnected();
 	}
 
-	private ConduitNetwork mergeConnected(final ConduitBlockEntity conduit) {
+	private ConduitNetwork<T> mergeConnected(final ConduitBlockEntity conduit) {
 		final Collection<ConduitBlockEntity> connected = conduit.getConnectedConduits(this.type);
-		final List<ConduitNetwork> others = connected.stream().map(con -> ConduitNetwork.getOrEstablish(this.type, con))
+		final List<ConduitNetwork<T>> others = connected.stream().map(con -> ConduitNetwork.getOrEstablish(this.type, con))
 				.distinct().collect(Collectors.toCollection(ArrayList::new));
 		if(!others.contains(this))
 			others.add(this);
 		return others.stream().reduce(ConduitNetwork::mergeSmaller).orElse(this);
 	}
 
-	private List<ConduitNetwork> splitDisconnected() {
+	private List<ConduitNetwork<T>> splitDisconnected() {
 		if(this.graph.isConnected())
 			return ImmutableList.of(this);
-		final List<ConduitNetwork> split = this.graph.splitDisconnected().stream().map(graph -> {
-			final ConduitNetwork network = new ConduitNetwork(this.level, this.type, graph);
+		final List<ConduitNetwork<T>> split = this.graph.splitDisconnected().stream().map(graph -> {
+			final ConduitNetwork<T> network = new ConduitNetwork<>(this.level, this.type, graph);
 			//Set the network for all the conduits split off into the new network
 			network.graph.conduits().forEach(x -> x.setNetwork(this.type, network));
 			return network;
@@ -142,7 +144,11 @@ public class ConduitNetwork {
 		return split;
 	}
 
-	private static ConduitNetwork getOrEstablish(final ConduitType type, final ConduitBlockEntity conduit) {
+	public Object2IntMap<BlockPos> computeDistanceMap(final BlockPos origin){
+		return this.graph.computeDistanceMap(origin);
+	}
+
+	private static <T extends TransferrableQuantity> ConduitNetwork<T> getOrEstablish(final ConduitType<T> type, final ConduitBlockEntity conduit) {
 		return conduit.getNetwork(type).orElseGet(() -> ConduitNetwork.establish(conduit, type));
 	}
 
@@ -156,13 +162,13 @@ public class ConduitNetwork {
 	}
 
 	@SuppressWarnings("resource")
-	public static ConduitNetwork establish(final ConduitBlockEntity conduit, final ConduitType type) {
+	public static <T extends TransferrableQuantity> ConduitNetwork<T> establish(final ConduitBlockEntity conduit, final ConduitType<T> type) {
 		if(conduit.getLevel().isClientSide)
 			throw new IllegalStateException("Cannot create networks on the client side!");
-		return new ConduitNetwork(conduit.getLevel(), type).accept(conduit, true);
+		return new ConduitNetwork<>(conduit.getLevel(), type).accept(conduit, true);
 	}
 
-	public void rescan() {
+	private void rescan() {
 		if(this.changedBEs.isEmpty())
 			return;
 		//NOTE: This is quite a delicate operation with many joins/splits occuring in a given rescan
@@ -178,7 +184,7 @@ public class ConduitNetwork {
 			//might invalidate this network. Instead we get the network the conduit belongs to
 			copy.stream().distinct().filter(Predicates.not(ConduitBlockEntity::isRemoved))
 			.filter(conduit -> ConduitNetwork.getOrEstablish(this.type, conduit).graph.hasNode(conduit.getBlockPos())).forEach(conduit -> {
-				final ConduitNetwork network = ConduitNetwork.getOrEstablish(this.type, conduit);
+				final ConduitNetwork<T> network = ConduitNetwork.getOrEstablish(this.type, conduit);
 				//Let the graph make the proper changes
 				network.graph.putConnections(conduit);
 				//If this network was split off from this one, make sure it doesn't have to recheck this conduit later
@@ -194,9 +200,17 @@ public class ConduitNetwork {
 		if(this.graph.isInvalid())
 			return;
 		this.rescan();
-		final Pair<List<Positioned<Inventory>>, List<Positioned<Inventory>>> inventories = this.graph.gatherInventories(this.type);
-		final List<Positioned<Inventory>> providing = inventories.getRight();
-		providing.sort(Positioned.valueComparator(Inventory.PROVIDE_PRIORITY_COMPARATOR));
+		final Pair<List<Positioned<Inventory<T>>>, List<Positioned<Inventory<T>>>> inventories = this.graph.gatherInventories(this.type);
+		final List<Positioned<Inventory<T>>> providing = inventories.getRight();
+		final List<Positioned<Inventory<T>>> receiving = inventories.getLeft();
+		providing.sort((x, y) -> Integer.compare(x.value().getSettings().getProvidePriority(), y.value().getSettings().getProvidePriority()));
+		providing.forEach(providingInv -> {
+			final List<T> items = providingInv.value().nextAvailable();
+			if(items == null || items.isEmpty())
+				return;
+			final Distributor<T, Inventory<T>> distributor = providingInv.value().getSettings().getDestinationMode().getFactory().create(this, providingInv);
+			distributor.distribute(receiving, items);
+		});
 	}
 
 	@Override

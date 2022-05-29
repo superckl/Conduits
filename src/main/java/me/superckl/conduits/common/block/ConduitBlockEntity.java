@@ -16,6 +16,8 @@ import me.superckl.conduits.conduit.connection.ConduitConnection;
 import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
 import me.superckl.conduits.conduit.connection.ConduitConnectionType;
 import me.superckl.conduits.conduit.network.ConduitNetwork;
+import me.superckl.conduits.conduit.network.inventory.TransferrableQuantity;
+import me.superckl.conduits.util.WarningHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -36,7 +38,7 @@ public class ConduitBlockEntity extends BlockEntity{
 
 	@Getter
 	private final ConduitConnectionMap connections = ConduitConnectionMap.make();
-	private final Map<ConduitType, ConduitNetwork> networks = new Object2ObjectOpenHashMap<>();
+	private final Map<ConduitType<?>, ConduitNetwork<?>> networks = new Object2ObjectOpenHashMap<>();
 
 	public ConduitBlockEntity(final BlockPos pWorldPosition, final BlockState pBlockState) {
 		super(ModBlocks.CONDUIT_ENTITY.get(), pWorldPosition, pBlockState);
@@ -61,27 +63,27 @@ public class ConduitBlockEntity extends BlockEntity{
 	/**
 	 * Checks if this block entity has the given conduit type
 	 */
-	public boolean hasType(final ConduitType type) {
+	public boolean hasType(final ConduitType<?> type) {
 		return this.connections.hasType(type);
 	}
 
 	/**
 	 * Checks if this block entity has the passed tier for the given type.
 	 */
-	public boolean isTier(final ConduitType type, final ConduitTier tier) {
+	public boolean isTier(final ConduitType<?> type, final ConduitTier tier) {
 		return this.connections.getTier(type) == tier;
 	}
 
-	public ConduitTier getTier(final ConduitType type) {
+	public ConduitTier getTier(final ConduitType<?> type) {
 		return this.connections.getTier(type);
 	}
 
-	public Optional<ConduitNetwork> getNetwork(final ConduitType type) {
-		return Optional.ofNullable(this.networks.get(type));
+	public <T extends TransferrableQuantity> Optional<ConduitNetwork<T>> getNetwork(final ConduitType<T> type) {
+		return Optional.ofNullable(WarningHelper.uncheckedCast(this.networks.get(type)));
 	}
 
-	public ConduitNetwork setNetwork(final ConduitType type, final ConduitNetwork network) {
-		return this.networks.put(type, network);
+	public <T extends TransferrableQuantity> ConduitNetwork<T> setNetwork(final ConduitType<T> type, final ConduitNetwork<T> network) {
+		return WarningHelper.uncheckedCast(this.networks.put(type, network));
 	}
 
 	/**
@@ -91,7 +93,7 @@ public class ConduitBlockEntity extends BlockEntity{
 	 * @return If the set failed, an optional containing the passed tier will be returned. Otherwise, the
 	 * optional will contain the previous tier of the type (possibly empty)
 	 */
-	public Optional<ConduitTier> trySetTier(final ConduitType type, final ConduitTier tier) {
+	public Optional<ConduitTier> trySetTier(final ConduitType<?> type, final ConduitTier tier) {
 		if(this.isTier(type, tier))
 			return Optional.of(tier);
 		final ConduitTier prev = this.connections.setTier(type, tier);
@@ -102,7 +104,7 @@ public class ConduitBlockEntity extends BlockEntity{
 		return Optional.ofNullable(prev);
 	}
 
-	public boolean removeType(final ConduitType type) {
+	public boolean removeType(final ConduitType<?> type) {
 		final boolean changed = this.connections.removeConnections(type);
 		if(changed)
 			this.connectionChange();
@@ -146,16 +148,16 @@ public class ConduitBlockEntity extends BlockEntity{
 		});
 	}
 
-	public Collection<ConduitBlockEntity> getConnectedConduits(final ConduitType type){
+	public Collection<ConduitBlockEntity> getConnectedConduits(final ConduitType<?> type){
 		return this.connections.getConnections(type).entrySet().stream()
 				.filter(entry -> entry.getValue().getConnectionType() == ConduitConnectionType.CONDUIT).map(Map.Entry::getKey)
 				.map(this::getNeighborConduit).collect(Collectors.toList());
 	}
 
-	public Collection<ConduitConnection.Inventory> getConnectedInventories(final ConduitType type){
+	public <T extends TransferrableQuantity> Collection<ConduitConnection.Inventory<T>> getConnectedInventories(final ConduitType<T> type){
 		return this.connections.getConnections(type).entrySet().stream()
 				.filter(entry -> entry.getValue().getConnectionType() == ConduitConnectionType.INVENTORY).map(Map.Entry::getValue)
-				.map(ConduitConnection::asInventory).collect(Collectors.toList());
+				.map(con -> con.asInventory().restoreGeneric(type)).collect(Collectors.toList());
 	}
 
 	private ConduitBlockEntity getNeighborConduit(final Direction dir) {
@@ -165,7 +167,8 @@ public class ConduitBlockEntity extends BlockEntity{
 		return this.level.getBlockEntity(pos, ModBlocks.CONDUIT_ENTITY.get()).orElse(null);
 	}
 
-	public Optional<ConduitConnection.Inventory> establishInventoryConnection(final ConduitType type, final Direction dir) {
+	public <T extends TransferrableQuantity> Optional<ConduitConnection.Inventory<T>> establishInventoryConnection(final ConduitType<T> type,
+			final Direction dir) {
 		if(!this.getConnections().hasConnection(type, dir))
 			return Optional.empty();
 		final BlockEntity inventory = this.level.getBlockEntity(this.worldPosition.relative(dir));
@@ -177,17 +180,18 @@ public class ConduitBlockEntity extends BlockEntity{
 			return Optional.empty();
 		}
 
-		final ConduitConnection.Inventory connection = type.establishConnection(ConduitConnectionType.INVENTORY, dir, this).asInventory();
+		final ConduitConnection.Inventory<T> connection = type.establishConnection(ConduitConnectionType.INVENTORY, dir, this)
+				.asInventory().restoreGeneric(type);
 		connection.resolve();
 		return Optional.of(connection);
 	}
 
-	public void inventoryInvalidated(final Direction dir, final ConduitConnection.Inventory con) {
+	public void inventoryInvalidated(final Direction dir, final ConduitConnection.Inventory<?> con) {
 		if(this.connections.removeConnection(dir, con))
 			this.connectionChange();
 	}
 
-	private boolean makeConnection(final ConduitType type, final Direction dir, final ConduitConnectionType con) {
+	private boolean makeConnection(final ConduitType<?> type, final Direction dir, final ConduitConnectionType con) {
 		final ConduitConnection connection = type.establishConnection(con, dir, this);
 		if(this.connections.makeConnection(type, dir, connection)) {
 			connection.resolve();
@@ -197,7 +201,7 @@ public class ConduitBlockEntity extends BlockEntity{
 		return false;
 	}
 
-	private void removeConnection(final ConduitType type, final Direction dir) {
+	private void removeConnection(final ConduitType<?> type, final Direction dir) {
 		if(this.connections.removeConnection(type, dir))
 			this.connectionChange();
 	}

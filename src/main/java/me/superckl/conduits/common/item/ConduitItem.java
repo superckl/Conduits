@@ -42,14 +42,14 @@ import net.minecraftforge.registries.RegistryObject;
 @Getter
 public class ConduitItem extends BlockItem{
 
-	private final RegistryObject<ConduitType> type;
+	private final RegistryObject<ConduitType<?>> type;
 	private final ConduitTier tier;
 	private final String descriptionId;
 
 	@Getter
 	private final Lazy<IModelData> renderData;
 
-	public ConduitItem(final RegistryObject<ConduitType> type, final ConduitTier tier) {
+	public ConduitItem(final RegistryObject<ConduitType<?>> type, final ConduitTier tier) {
 		super(ModBlocks.CONDUIT_BLOCK.get(), new Properties().tab(Conduits.CONDUIT_TAB));
 		this.type = type;
 		this.tier = tier;

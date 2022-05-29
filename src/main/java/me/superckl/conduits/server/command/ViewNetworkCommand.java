@@ -22,7 +22,7 @@ public class ViewNetworkCommand {
 					ClipContext.Block.VISUAL, ClipContext.Fluid.NONE,  player));
 			if(hit != null && player.level.getBlockEntity(hit.getBlockPos()) instanceof final ConduitBlockEntity conduit) {
 				sender.getSource().sendSuccess(new TranslatableComponent("conduits.command.network.conduit", conduit.getBlockPos()), true);
-				final Collection<ConduitType> types = conduit.getConnections().getTypes();
+				final Collection<ConduitType<?>> types = conduit.getConnections().getTypes();
 				if(types.isEmpty())
 					sender.getSource().sendFailure(new TranslatableComponent("conduits.command.network.type.none"));
 				else

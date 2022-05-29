@@ -34,7 +34,7 @@ public class InventoryConnectionMenu extends AbstractContainerMenu{
 
 	private final ConduitBlockEntity conduit;
 	private final Direction dir;
-	private final Map<ConduitType, SettingsData> types;
+	private final Map<ConduitType<?>, SettingsData> types;
 
 	public InventoryConnectionMenu(final int pContainerId, final Inventory inv, final FriendlyByteBuf buf) {
 		this(pContainerId, inv, buf.readBlockPos(), buf.readEnum(Direction.class));
@@ -80,11 +80,11 @@ public class InventoryConnectionMenu extends AbstractContainerMenu{
 
 	}
 
-	public SettingsData getSettings(final ConduitType type) {
+	public SettingsData getSettings(final ConduitType<?> type) {
 		return this.types.get(type);
 	}
 
-	public ConduitType[] getTypes() {
+	public ConduitType<?>[] getTypes() {
 		return this.types.keySet().toArray(ConduitType[]::new);
 	}
 

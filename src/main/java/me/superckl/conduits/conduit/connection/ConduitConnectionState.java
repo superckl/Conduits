@@ -28,11 +28,11 @@ public class ConduitConnectionState{
 					() -> new EnumMap<>(Direction.class)).fieldOf("connections").forGetter(ConduitConnectionState::getConnections))
 			.apply(instance, ConduitConnectionState::new));
 
-	private final ConduitType type;
+	private final ConduitType<?> type;
 	private final ConduitTier tier;
 	private final Map<Direction, ConduitConnection> connections;
 
-	public ConduitConnectionState(final ConduitType type, final ConduitTier tier, final Map<Direction, ConduitConnection> connections) {
+	public ConduitConnectionState(final ConduitType<?> type, final ConduitTier tier, final Map<Direction, ConduitConnection> connections) {
 
 		this.type = type;
 		this.tier = tier;
@@ -72,7 +72,7 @@ public class ConduitConnectionState{
 		return new ConduitConnectionState(this.type, this.tier, connections);
 	}
 
-	public static ConduitConnectionState with(final ConduitType type, final ConduitTier tier) {
+	public static ConduitConnectionState with(final ConduitType<?> type, final ConduitTier tier) {
 		return new ConduitConnectionState(type, tier, new EnumMap<>(Direction.class));
 	}
 

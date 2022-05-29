@@ -40,7 +40,7 @@ public abstract class DecalButton extends Button{
 
 	@Override
 	public void renderToolTip(final PoseStack pPoseStack, final int pMouseX, final int pMouseY) {
-		this.owner.renderTooltip(pPoseStack, this.getProvider().getTooltip(), pMouseX, pMouseY);
+		this.owner.renderComponentTooltip(pPoseStack, this.getProvider().getTooltip(), pMouseX, pMouseY);
 	}
 
 	public abstract ButtonImageProvider getProvider();

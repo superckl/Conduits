@@ -13,7 +13,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-public record ConfiguredConduit(ConduitType[] types, List<ConduitPart> joints, ConduitPart mixedJoint,
+public record ConfiguredConduit(ConduitType<?>[] types, List<ConduitPart> joints, ConduitPart mixedJoint,
 		Map<Direction, ConduitPart> connections, Multimap<Direction, ConduitPart> segments) {
 
 	public VoxelShape getShape() {

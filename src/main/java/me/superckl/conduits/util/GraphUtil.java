@@ -3,7 +3,9 @@ package me.superckl.conduits.util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
@@ -12,6 +14,9 @@ import com.google.common.graph.EndpointPair;
 import com.google.common.graph.Graph;
 import com.google.common.graph.MutableGraph;
 import com.google.common.graph.Traverser;
+
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 
 public class GraphUtil {
 
@@ -53,6 +58,23 @@ public class GraphUtil {
 
 	public static <T> void removeConnectedEdges(final MutableGraph<T> graph, final T node) {
 		graph.incidentEdges(node).forEach(graph::removeEdge);
+	}
+
+	public static <T> Object2IntMap<T> distances(final Graph<T> graph, final T origin) {
+		final Object2IntMap<T> map = new Object2IntOpenHashMap<>(graph.nodes().size());
+		map.put(origin, 0);
+		final Queue<T> queue = new LinkedList<>();
+		queue.add(origin);
+		while(!queue.isEmpty()) {
+			final T node = queue.poll();
+			final Set<T> adj = graph.adjacentNodes(node);
+			final int priority = map.getInt(node)+1;
+			adj.stream().filter(x -> !map.containsKey(x)).forEach(x -> {
+				map.put(x, priority);
+				queue.add(x);
+			});
+		}
+		return map;
 	}
 
 }

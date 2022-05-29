@@ -1,6 +1,8 @@
 package me.superckl.conduits.conduit.connection;
 
 import java.util.Comparator;
+import java.util.List;
+import java.util.function.Consumer;
 
 import com.google.common.base.Objects;
 import com.mojang.serialization.Codec;
@@ -10,6 +12,8 @@ import lombok.Getter;
 import me.superckl.conduits.ModConduits;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitType;
+import me.superckl.conduits.conduit.network.inventory.TransferrableQuantity;
+import me.superckl.conduits.util.WarningHelper;
 import net.minecraft.core.Direction;
 
 public abstract class ConduitConnection {
@@ -18,11 +22,11 @@ public abstract class ConduitConnection {
 			.dispatch(ConduitConnection::getIdentifier, id -> id.type().getCodec(id.connectionType()));
 
 	@Getter
-	private final ConduitType type;
+	private final ConduitType<?> type;
 	@Getter
 	private final Identifier identifier;
 
-	protected ConduitConnection(final ConduitType type) {
+	protected ConduitConnection(final ConduitType<?> type) {
 		this.type = type;
 		this.identifier = new Identifier(this.getConnectionType(), type);
 	}
@@ -35,8 +39,8 @@ public abstract class ConduitConnection {
 		throw new IncompatibleClassChangeError();
 	}
 
-	public final Inventory asInventory() {
-		return (Inventory) this;
+	public final Inventory<?> asInventory() {
+		return (Inventory<?>) this;
 	}
 
 	@Override
@@ -66,7 +70,7 @@ public abstract class ConduitConnection {
 				ModConduits.TYPES_CODEC.fieldOf("conduitType").forGetter(Conduit::getType))
 				.apply(instance, Conduit::new));
 
-		public Conduit(final ConduitType type) {
+		public Conduit(final ConduitType<?> type) {
 			super(type);
 		}
 
@@ -77,12 +81,12 @@ public abstract class ConduitConnection {
 
 	}
 
-	public static abstract class Inventory extends ConduitConnection{
+	public static abstract class Inventory<T extends TransferrableQuantity> extends ConduitConnection implements Consumer<T>{
 
-		public static final Comparator<Inventory> ACCEPT_PRIORITY_COMPARATOR = (x, y) ->
+		public static final Comparator<Inventory<?>> ACCEPT_PRIORITY_COMPARATOR = (x, y) ->
 		Integer.compare(x.getSettings().getAcceptPriority(), y.getSettings().getAcceptPriority());
 
-		public static final Comparator<Inventory> PROVIDE_PRIORITY_COMPARATOR = (x, y) ->
+		public static final Comparator<Inventory<?>> PROVIDE_PRIORITY_COMPARATOR = (x, y) ->
 		Integer.compare(x.getSettings().getProvidePriority(), y.getSettings().getProvidePriority());
 
 		protected ConduitBlockEntity owner;
@@ -91,7 +95,7 @@ public abstract class ConduitConnection {
 		@Getter
 		private final InventoryConnectionSettings settings;
 
-		protected Inventory(final ConduitType type, final Direction fromConduit, final InventoryConnectionSettings settings) {
+		protected Inventory(final ConduitType<T> type, final Direction fromConduit, final InventoryConnectionSettings settings) {
 			super(type);
 			this.fromDir = fromConduit;
 			this.settings = settings.copy(this::onValueChange);
@@ -104,31 +108,70 @@ public abstract class ConduitConnection {
 
 		@Override
 		public ConduitConnection copyForMap() {
-			return new DummyInventoryConnection(this.getType());
+			return new DummyInventoryConnection<>(this.getType());
 		}
 
 		protected void onValueChange(final InventoryConnectionSettings.Setting setting) {
 			this.owner.settingsChange();
 		}
 
-		public Inventory setOwner(final ConduitBlockEntity owner) {
+		public Inventory<T> setOwner(final ConduitBlockEntity owner) {
 			if(this.owner != null)
 				throw new IllegalStateException("Connection already has owner!");
 			this.owner = owner;
 			return this;
 		}
 
+		/**
+		 * Get a list of the next available set of quantities. This will only be called
+		 * once per transfer operation, so handlers that only provide portions of inventories
+		 * can safely move to the next portion here.
+		 * If there are no items to be transferred (i.e., all are already consumed), this should
+		 * return an empty list to avoid calculation of destination priorities.
+		 */
+		public abstract List<T> nextAvailable();
+		@Override
+		public abstract void accept(T quantity);
+
+		/**
+		 * Called once a tick before the network attempts to send items to this connection
+		 * Can be used to cache information that may change between ticks but should be
+		 * recomputed for every insertion attempt (e.g., open slots, items in slots)
+		 */
+		public void setupReceivingCache() {}
+
+		/**
+		 * Convenience method to restore the generic of this connection type when the type generic is known
+		 */
+		public final <V extends TransferrableQuantity> Inventory<V> restoreGeneric(final ConduitType<V> type) {
+			if(this.getType() != type)
+				throw new IllegalArgumentException("Cannot change connection to a different type!");
+			return WarningHelper.uncheckedCast(this);
+		}
+
+		@Override
+		public boolean equals(final Object obj) {
+			if(obj instanceof final Inventory<?> inv)
+				return this.fromDir == inv.fromDir && super.equals(obj);
+			return false;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hashCode(this.getType(), this.getConnectionType(), this.fromDir);
+		}
+
 	}
 
-	private static class DummyInventoryConnection extends Inventory{
+	private static class DummyInventoryConnection<T extends TransferrableQuantity> extends Inventory<T>{
 
-		protected DummyInventoryConnection(final ConduitType type) {
+		protected DummyInventoryConnection(final ConduitType<T> type) {
 			super(type, null, new InventoryConnectionSettings());
 		}
 
 		@Override
 		public ConduitConnection copyForMap() {
-			return new DummyInventoryConnection(this.getType());
+			return new DummyInventoryConnection<>(this.getType());
 		}
 
 		@Override
@@ -141,9 +184,19 @@ public abstract class ConduitConnection {
 			throw new UnsupportedOperationException();
 		}
 
+		@Override
+		public List<T> nextAvailable() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void accept(final T quantity) {
+			throw new UnsupportedOperationException();
+		}
+
 	}
 
-	private static record Identifier(ConduitConnectionType connectionType, ConduitType type) {
+	private static record Identifier(ConduitConnectionType connectionType, ConduitType<?> type) {
 
 		private static Codec<Identifier> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 				ConduitConnectionType.CODEC.fieldOf("connectionType").forGetter(Identifier::connectionType),

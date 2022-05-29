@@ -19,7 +19,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 @Builder
-public record ConduitPart(ConduitPartType type, ConduitTier tier, ConduitType conduitType,
+public record ConduitPart(ConduitPartType type, ConduitTier tier, ConduitType<?> conduitType,
 		Vector3f offset, AABB shape, Quaternion rotation) {
 
 	public static final Vector3f ONE = new Vector3f(1, 1, 1);

@@ -27,16 +27,16 @@ public class NetworkTicker {
 	public static final Capability<NetworkTicker> CAPABILITY = CapabilityManager.get(new CapabilityToken<>() {});
 	private static final ResourceLocation CAP_LOC = new ResourceLocation(Conduits.MOD_ID, "network_ticker");
 
-	private final List<WeakReference<ConduitNetwork>> networks = new ArrayList<>();
-	private final List<ConduitNetwork> toAdd = new ArrayList<>();
-	private final List<ConduitNetwork> toRemove = new ArrayList<>();
+	private final List<WeakReference<ConduitNetwork<?>>> networks = new ArrayList<>();
+	private final List<ConduitNetwork<?>> toAdd = new ArrayList<>();
+	private final List<ConduitNetwork<?>> toRemove = new ArrayList<>();
 
 	public void tick() {
 		this.toAdd.forEach(network -> this.networks.add(new WeakReference<>(network)));
 		this.toAdd.clear();
-		final Iterator<WeakReference<ConduitNetwork>> it = this.networks.iterator();
+		final Iterator<WeakReference<ConduitNetwork<?>>> it = this.networks.iterator();
 		while(it.hasNext()) {
-			final ConduitNetwork ref = it.next().get();
+			final ConduitNetwork<?> ref = it.next().get();
 			if(ref == null || this.toRemove.contains(ref))
 				it.remove();
 			else
@@ -45,11 +45,11 @@ public class NetworkTicker {
 		this.toRemove.clear();
 	}
 
-	public void remove(final ConduitNetwork network) {
+	public void remove(final ConduitNetwork<?> network) {
 		this.toRemove.add(network);
 	}
 
-	public void add(final ConduitNetwork network) {
+	public void add(final ConduitNetwork<?> network) {
 		this.toAdd.add(network);
 	}
 

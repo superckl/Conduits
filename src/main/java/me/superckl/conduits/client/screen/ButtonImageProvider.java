@@ -1,5 +1,7 @@
 package me.superckl.conduits.client.screen;
 
+import java.util.List;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.network.chat.Component;
@@ -8,7 +10,7 @@ public interface ButtonImageProvider {
 
 	int getTexX();
 	int getTexY();
-	Component getTooltip();
+	List<Component> getTooltip();
 
 	default int getWidth() { return 28;}
 	default int getHeight() { return 28;}
@@ -19,7 +21,7 @@ public interface ButtonImageProvider {
 
 		private final int texX;
 		private final int texY;
-		private final Component tooltip;
+		private final List<Component> tooltip;
 		private final int width;
 		private final int height;
 

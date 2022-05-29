@@ -43,12 +43,12 @@ import net.minecraft.world.phys.AABB;
 @EqualsAndHashCode
 public class ConduitConnectionMap {
 
-	private static final Codec<Map<ConduitType, ConduitConnectionState>> MAP_CODEC =
+	private static final Codec<Map<ConduitType<?>, ConduitConnectionState>> MAP_CODEC =
 			ConduitUtil.generalizedMapCodec(ModConduits.TYPES_CODEC, ConduitConnectionState.CODEC, Object2ObjectOpenHashMap::new);
 
-	private final Map<ConduitType, ConduitConnectionState> data;
+	private final Map<ConduitType<?>, ConduitConnectionState> data;
 
-	public ConduitTier setTier(final ConduitType type, final ConduitTier tier) {
+	public ConduitTier setTier(final ConduitType<?> type, final ConduitTier tier) {
 		if(this.data.containsKey(type))
 			return this.data.put(type, new ConduitConnectionState(type, tier, this.data.get(type).getConnections())).getTier();
 		this.data.put(type, ConduitConnectionState.with(type, tier));
@@ -59,19 +59,19 @@ public class ConduitConnectionMap {
 		return this.data.size();
 	}
 
-	public boolean hasType(final ConduitType type) {
+	public boolean hasType(final ConduitType<?> type) {
 		return this.data.containsKey(type);
 	}
 
-	public ConduitTier getTier(final ConduitType type) {
+	public ConduitTier getTier(final ConduitType<?> type) {
 		return this.hasType(type) ? this.data.get(type).getTier() : null;
 	}
 
-	public Stream<ConduitType> types(){
+	public Stream<ConduitType<?>> types(){
 		return this.data.keySet().stream();
 	}
 
-	public Collection<ConduitType> getTypes(){
+	public Collection<ConduitType<?>> getTypes(){
 		return Collections.unmodifiableCollection(this.data.keySet());
 	}
 
@@ -83,27 +83,27 @@ public class ConduitConnectionMap {
 		return num;
 	}
 
-	public Map<Direction, ConduitConnection> getConnections(final ConduitType type){
+	public Map<Direction, ConduitConnection> getConnections(final ConduitType<?> type){
 		if(!this.hasType(type))
 			return Collections.emptyMap();
 		return Collections.unmodifiableMap(this.data.get(type).getConnections());
 	}
 
-	public boolean hasConnection(final ConduitType type, final Direction dir) {
+	public boolean hasConnection(final ConduitType<?> type, final Direction dir) {
 		return this.getConnections(type).containsKey(dir);
 	}
 
-	public ConduitConnection getConnection(final ConduitType type, final Direction dir) {
+	public ConduitConnection getConnection(final ConduitType<?> type, final Direction dir) {
 		return this.getConnections(type).get(dir);
 	}
 
-	public boolean makeConnection(final ConduitType type, final Direction dir, final ConduitConnection con) {
+	public boolean makeConnection(final ConduitType<?> type, final Direction dir, final ConduitConnection con) {
 		if(!this.hasType(type))
 			throw new IllegalStateException("Cannot set connection for a missing type! "+type);
 		return this.data.get(type).makeConnection(dir, con);
 	}
 
-	public boolean removeConnection(final ConduitType type, final Direction dir) {
+	public boolean removeConnection(final ConduitType<?> type, final Direction dir) {
 		if(!this.hasType(type))
 			return false;
 		return this.data.get(type).removeConnection(dir) != null;
@@ -127,7 +127,7 @@ public class ConduitConnectionMap {
 		return changed;
 	}
 
-	public boolean removeConnections(final ConduitType type) {
+	public boolean removeConnections(final ConduitType<?> type) {
 		return this.data.remove(type) != null;
 	}
 
@@ -145,8 +145,8 @@ public class ConduitConnectionMap {
 		this.data.values().forEach(state -> state.setOwners(owner));
 	}
 
-	public Map<Direction, Map<ConduitType, Pair<ConduitTier, ConduitConnection>>> byDirection(){
-		final Map<Direction, Map<ConduitType, Pair<ConduitTier, ConduitConnection>>> base = new EnumMap<>(Direction.class);
+	public Map<Direction, Map<ConduitType<?>, Pair<ConduitTier, ConduitConnection>>> byDirection(){
+		final Map<Direction, Map<ConduitType<?>, Pair<ConduitTier, ConduitConnection>>> base = new EnumMap<>(Direction.class);
 		this.data.forEach((type, state) -> {
 			state.getConnections().forEach((dir, con) -> {
 				base.computeIfAbsent(dir, x -> new Object2ObjectOpenHashMap<>()).put(type, Pair.of(state.getTier(), con));
@@ -197,7 +197,7 @@ public class ConduitConnectionMap {
 	}
 
 	public ConduitConnectionMap copyForMap(){
-		final Map<ConduitType, ConduitConnectionState> data = this.data.entrySet().stream()
+		final Map<ConduitType<?>, ConduitConnectionState> data = this.data.entrySet().stream()
 				.collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().copyForMap(),
 						(x, j) -> {throw new UnsupportedOperationException();}, Object2ObjectOpenHashMap::new));
 		return new ConduitConnectionMap(data);
