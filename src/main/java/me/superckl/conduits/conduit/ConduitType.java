@@ -16,7 +16,7 @@ import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.registries.ForgeRegistryEntry;
 
-public abstract class ConduitType<T extends TransferrableQuantity> extends ForgeRegistryEntry<ConduitType<T>> implements Comparable<ConduitType<T>>{
+public abstract class ConduitType<T extends TransferrableQuantity> extends ForgeRegistryEntry<ConduitType<?>> implements Comparable<ConduitType<T>>{
 
 	private Component displayName;
 
