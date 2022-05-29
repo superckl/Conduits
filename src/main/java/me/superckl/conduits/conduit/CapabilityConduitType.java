@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.connection.ConduitConnection.Inventory;
 import me.superckl.conduits.conduit.connection.InventoryConnectionSettings;
+import me.superckl.conduits.conduit.connection.RedstoneMode;
 import me.superckl.conduits.conduit.network.inventory.CapabilityInventory;
 import me.superckl.conduits.conduit.network.inventory.TransferrableQuantity;
 import me.superckl.conduits.conduit.network.inventory.TransferrableQuantity.EnergyQuantity;
@@ -56,7 +57,7 @@ public abstract class CapabilityConduitType<T, V extends TransferrableQuantity> 
 
 		@Override
 		protected Inventory<EnergyQuantity> establishConnection(final Direction dir, final ConduitBlockEntity owner) {
-			return new CapabilityInventory.Energy(dir, new InventoryConnectionSettings()).setOwner(owner);
+			return new CapabilityInventory.Energy(dir, new InventoryConnectionSettings().setProvideRedstoneMode(RedstoneMode.IGNORED)).setOwner(owner);
 		}
 
 		@Override

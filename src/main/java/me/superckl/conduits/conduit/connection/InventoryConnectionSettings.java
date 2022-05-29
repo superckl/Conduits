@@ -31,7 +31,7 @@ public class InventoryConnectionSettings {
 	@Getter
 	protected RedstoneMode acceptRedstoneMode = RedstoneMode.IGNORED;
 	@Getter
-	protected RedstoneMode provideRedstoneMode = RedstoneMode.IGNORED;
+	protected RedstoneMode provideRedstoneMode = RedstoneMode.DISABLED;
 	@Getter
 	protected DestinationMode destinationMode = DestinationMode.NEAREST;
 
@@ -46,39 +46,44 @@ public class InventoryConnectionSettings {
 		this.destinationMode = destinationMode;
 	}
 
-	public void setAcceptPriority(final int priority) {
+	public InventoryConnectionSettings setAcceptPriority(final int priority) {
 		final int oldValue = this.acceptPriority;
 		this.acceptPriority = priority;
 		if(oldValue != this.acceptPriority && this.updateListener != null)
 			this.updateListener.accept(Setting.ACCEPT_PRIORITY);
+		return this;
 	}
 
-	public void setProvidePriority(final int priority) {
+	public InventoryConnectionSettings setProvidePriority(final int priority) {
 		final int oldValue = this.providePriority;
 		this.providePriority = priority;
 		if(oldValue != this.providePriority && this.updateListener != null)
 			this.updateListener.accept(Setting.PROVIDE_PRIORITY);
+		return this;
 	}
 
-	public void setAcceptRedstoneMode(final RedstoneMode redstoneMode) {
+	public InventoryConnectionSettings setAcceptRedstoneMode(final RedstoneMode redstoneMode) {
 		final RedstoneMode oldValue = this.acceptRedstoneMode;
 		this.acceptRedstoneMode = redstoneMode;
 		if(oldValue != this.acceptRedstoneMode && this.updateListener != null)
 			this.updateListener.accept(Setting.ACCEPT_REDSTONE_MODE);
+		return this;
 	}
 
-	public void setProvideRedstoneMode(final RedstoneMode redstoneMode) {
+	public InventoryConnectionSettings setProvideRedstoneMode(final RedstoneMode redstoneMode) {
 		final RedstoneMode oldValue = this.provideRedstoneMode;
 		this.provideRedstoneMode = redstoneMode;
 		if(oldValue != this.provideRedstoneMode && this.updateListener != null)
 			this.updateListener.accept(Setting.PROVIDE_REDSTONE_MODE);
+		return this;
 	}
 
-	public void setDestinationMode(final DestinationMode destinationMode) {
+	public InventoryConnectionSettings setDestinationMode(final DestinationMode destinationMode) {
 		final DestinationMode oldValue = this.destinationMode;
 		this.destinationMode = destinationMode;
 		if(oldValue != this.destinationMode && this.updateListener != null)
 			this.updateListener.accept(Setting.DESTINATION_MODE);
+		return this;
 	}
 
 	public boolean isAccepting() {
