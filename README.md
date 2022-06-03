@@ -1,4 +1,2 @@
-# BiomeTweaker
-Used to tweak various properties of biomes.
-
-https://minecraft.curseforge.com/projects/biometweaker
+# Conduits
+Conduits for transferring items, energy, and fluids. Currently unreleased.
