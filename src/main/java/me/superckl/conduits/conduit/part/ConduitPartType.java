@@ -4,7 +4,8 @@ import javax.annotation.Nullable;
 
 import lombok.RequiredArgsConstructor;
 import net.minecraft.util.StringRepresentable;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import org.jetbrains.annotations.NotNull;
 
 @RequiredArgsConstructor
 public enum ConduitPartType implements StringRepresentable{
@@ -17,11 +18,11 @@ public enum ConduitPartType implements StringRepresentable{
 	private final boolean typed;
 
 	@Override
-	public String getSerializedName() {
+	public @NotNull String getSerializedName() {
 		return this.name;
 	}
 
-	public String path(@Nullable final RegistryObject<?> type) {
+	public String path(@Nullable final DeferredHolder<?, ?> type) {
 		final StringBuilder builder = new StringBuilder("conduit/");
 		if(this.typed && type != null)
 			builder.append(type.getId().getPath()).append('_');

@@ -5,12 +5,11 @@ import java.util.Collection;
 import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.util.FluidHandlerUtil;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.energy.IEnergyStorage;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
 
 public abstract class TransferrableQuantity {
 
@@ -43,7 +42,7 @@ public abstract class TransferrableQuantity {
 		public boolean insertInto(final IItemHandler other) {
 			final ItemStack stack = this.handler.getStackInSlot(this.slot);
 			final ItemStack remainder = ItemHandlerHelper.insertItem(other, stack, true);
-			if(remainder == stack || remainder.sameItem(stack) && remainder.getCount() == stack.getCount())
+			if(remainder == stack || remainder.is(stack.getItem()) && remainder.getCount() == stack.getCount())
 				return false;
 			final int inserted = stack.getCount()-remainder.getCount();
 			final ItemStack extracted = this.handler.extractItem(this.slot, inserted, false);
@@ -71,9 +70,9 @@ public abstract class TransferrableQuantity {
 				return false;
 			boolean modified = false;
 			for(final FluidStack stack:fluids) {
-				final int inserted = other.fill(stack, FluidAction.SIMULATE);
-				final FluidStack extracted = this.handler.drain(new FluidStack(stack.getFluid(), inserted), FluidAction.EXECUTE);
-				other.fill(extracted, FluidAction.EXECUTE);
+				final int inserted = other.fill(stack, IFluidHandler.FluidAction.SIMULATE);
+				final FluidStack extracted = this.handler.drain(new FluidStack(stack.getFluid(), inserted), IFluidHandler.FluidAction.EXECUTE);
+				other.fill(extracted, IFluidHandler.FluidAction.EXECUTE);
 				modified |= extracted.getAmount() > 0;
 			}
 			return modified;

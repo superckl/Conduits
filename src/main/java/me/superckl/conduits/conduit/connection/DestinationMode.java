@@ -18,8 +18,8 @@ import me.superckl.conduits.conduit.network.inventory.TransferrableQuantity;
 import me.superckl.conduits.util.Positioned;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.util.StringRepresentable;
+import org.jetbrains.annotations.NotNull;
 
 @RequiredArgsConstructor
 @Getter
@@ -31,7 +31,7 @@ public enum DestinationMode implements ButtonImageProvider, StringRepresentable{
 	ROUND_ROBIN("round_robin", 0, 0, null);
 
 	private static final Map<String, DestinationMode> BY_NAME = Arrays.stream(DestinationMode.values()).collect(Collectors.toMap(StringRepresentable::getSerializedName, v -> v));
-	public static final Codec<DestinationMode> CODEC = StringRepresentable.fromEnum(DestinationMode::values, DestinationMode.BY_NAME::get);
+	public static final Codec<DestinationMode> CODEC = StringRepresentable.fromEnum(DestinationMode::values);
 
 	private final String name;
 	private final int texX;
@@ -41,15 +41,15 @@ public enum DestinationMode implements ButtonImageProvider, StringRepresentable{
 	private final DistributorFactory factory;
 
 	@Override
-	public String getSerializedName() {
+	public @NotNull String getSerializedName() {
 		return this.name;
 	}
 
 	@Override
 	public List<Component> getTooltip(){
 		if(this.tooltip == null)
-			this.tooltip = ImmutableList.of(new TranslatableComponent("conduits.destination").withStyle(ChatFormatting.WHITE),
-					new TranslatableComponent("conduits.destination."+this.name).withStyle(ChatFormatting.GRAY));
+			this.tooltip = ImmutableList.of(Component.translatable("conduits.destination").withStyle(ChatFormatting.WHITE),
+					Component.translatable("conduits.destination."+this.name).withStyle(ChatFormatting.GRAY));
 		return this.tooltip;
 	}
 

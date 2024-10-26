@@ -99,7 +99,8 @@ public class InventoryConnectionSettings {
 				this.provideRedstoneMode, this.destinationMode, updateListener);
 	}
 
-	@RequiredArgsConstructor
+	@Getter
+    @RequiredArgsConstructor
 	public enum Setting {
 
 		ACCEPT_PRIORITY(new DataSyncHelper(InventoryConnectionSettings::setAcceptPriority, InventoryConnectionSettings::getAcceptPriority)),
@@ -108,7 +109,6 @@ public class InventoryConnectionSettings {
 		PROVIDE_REDSTONE_MODE(new DataSyncHelper((inv, v) -> inv.setProvideRedstoneMode(RedstoneMode.values()[v]), inv -> inv.getProvideRedstoneMode().ordinal())),
 		DESTINATION_MODE(new DataSyncHelper((inv, v) -> inv.setDestinationMode(DestinationMode.values()[v]), inv -> inv.getDestinationMode().ordinal()));
 
-		@Getter
 		private final DataSyncHelper syncHelper;
 
 	}

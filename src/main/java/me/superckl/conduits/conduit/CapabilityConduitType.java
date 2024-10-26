@@ -13,28 +13,28 @@ import me.superckl.conduits.conduit.network.inventory.TransferrableQuantity.Ener
 import me.superckl.conduits.conduit.network.inventory.TransferrableQuantity.ItemQuantity;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.energy.CapabilityEnergy;
-import net.minecraftforge.energy.IEnergyStorage;
-import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.items.CapabilityItemHandler;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+
+import java.util.Comparator;
 
 @RequiredArgsConstructor
-public abstract class CapabilityConduitType<T, V extends TransferrableQuantity> extends ConduitType<V>{
+public abstract class CapabilityConduitType<T, V extends TransferrableQuantity> extends ConduitType<V> {
 
-	protected final Capability<T> cap;
+	protected final BlockCapability<T, Direction> cap;
 
 	@Override
 	public boolean canConnect(final Direction dir, final BlockEntity be) {
-		return be.getCapability(this.cap, dir.getOpposite()).isPresent();
+		return be.getLevel().getCapability(this.cap, be.getBlockPos(), be.getBlockState(), be, dir.getOpposite()) != null;
 	}
 
 	public static class Item extends CapabilityConduitType<IItemHandler, TransferrableQuantity.ItemQuantity>{
 
 		public Item() {
-			super(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY);
+			super(Capabilities.ItemHandler.BLOCK);
 		}
 
 		@Override
@@ -52,7 +52,7 @@ public abstract class CapabilityConduitType<T, V extends TransferrableQuantity> 
 	public static class Energy extends CapabilityConduitType<IEnergyStorage, TransferrableQuantity.EnergyQuantity>{
 
 		public Energy() {
-			super(CapabilityEnergy.ENERGY);
+			super(Capabilities.EnergyStorage.BLOCK);
 		}
 
 		@Override
@@ -70,7 +70,7 @@ public abstract class CapabilityConduitType<T, V extends TransferrableQuantity> 
 	public static class Fluid extends CapabilityConduitType<IFluidHandler, TransferrableQuantity.FluidQuantity>{
 
 		public Fluid() {
-			super(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY);
+			super(Capabilities.FluidHandler.BLOCK);
 		}
 
 		@Override

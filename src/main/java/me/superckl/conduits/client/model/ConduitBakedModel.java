@@ -3,11 +3,8 @@ package me.superckl.conduits.client.model;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-
-import com.mojang.math.Vector3f;
 
 import it.unimi.dsi.fastutil.booleans.BooleanObjectPair;
 import lombok.RequiredArgsConstructor;
@@ -22,60 +19,61 @@ import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
 import me.superckl.conduits.conduit.part.ConduitPart;
 import me.superckl.conduits.conduit.part.ConduitParts;
 import me.superckl.conduits.util.ConduitUtil;
+import me.superckl.conduits.util.VectorHelper;
 import net.minecraft.Util;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.client.resources.model.Material;
-import net.minecraft.client.resources.model.ModelBakery;
-import net.minecraft.client.resources.model.ModelState;
+import net.minecraft.client.resources.model.*;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.client.model.IModelBuilder;
-import net.minecraftforge.client.model.IModelConfiguration;
-import net.minecraftforge.client.model.data.EmptyModelData;
-import net.minecraftforge.client.model.data.IModelData;
-import net.minecraftforge.common.util.Lazy;
+import net.neoforged.neoforge.client.RenderTypeGroup;
+import net.neoforged.neoforge.client.model.IDynamicBakedModel;
+import net.neoforged.neoforge.client.model.IModelBuilder;
+import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
+import net.neoforged.neoforge.common.util.Lazy;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
 @RequiredArgsConstructor
-public class ConduitBakedModel implements BakedModel{
+public class ConduitBakedModel implements IDynamicBakedModel {
 
 	private static final Lazy<ConduitConnectionMap> DEFAULT = Lazy.of(() ->
 	Util.make(ConduitConnectionMap.make(),
 			data -> data.setTier(ModConduits.ENERGY.get(), ConduitTier.EARLY))
 			);
 
-	private final ConduitParts<? extends WrappedVanillaProxy> parts;
-	private final IModelConfiguration owner;
-	private final ModelBakery bakery;
+	private final ConduitParts<? extends WrappedElementsModel> parts;
+	private final IGeometryBakingContext owner;
+	private final ModelBaker bakery;
 	private final Function<Material, TextureAtlasSprite> spriteGetter;
 	private final ModelState modelTransform;
 	private final ItemOverrides overrides;
-	private final ResourceLocation modelLocation;
 
 	private final Map<ConduitConnectionMap, List<BakedQuad>> modelCache = ConduitConnectionMap.newConduitCache(true);
 
-	@Override
-	public List<BakedQuad> getQuads(final BlockState pState, final Direction pSide, final Random pRand) {
-		return this.getQuads(pState, pSide, pRand, EmptyModelData.INSTANCE);
-	}
 
 	@Override
-	public List<BakedQuad> getQuads(final BlockState state, final Direction side, final Random rand, final IModelData extraData) {
+	public @NotNull List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData extraData, @Nullable RenderType renderType) {
 		if(side != null)
 			return Collections.emptyList();
 		ConduitConnectionMap data = ConduitBakedModel.DEFAULT.get();
-		if(extraData.hasProperty(ConduitBlockEntity.CONNECTION_PROPERTY))
-			data = extraData.getData(ConduitBlockEntity.CONNECTION_PROPERTY);
-		return ConduitUtil.copyComputeIfAbsent(this.modelCache, data, x -> this.bake(x).getQuads(state, null, rand, extraData));
+		if(extraData.has(ConduitBlockEntity.CONNECTION_PROPERTY))
+			data = extraData.get(ConduitBlockEntity.CONNECTION_PROPERTY);
+		return ConduitUtil.copyComputeIfAbsent(this.modelCache, data, x -> this.bake(x).getQuads(state, side, rand, extraData, renderType));
 	}
 
 	private BakedModel bake(final ConduitConnectionMap data) {
-		final TextureAtlasSprite particle = this.spriteGetter.apply(this.owner.resolveTexture("particle"));
-		final IModelBuilder<?> builder = IModelBuilder.of(this.owner, this.overrides, particle);
+		final TextureAtlasSprite particle = this.spriteGetter.apply(this.owner.getMaterial("#particle"));
+		ResourceLocation renderTypeHint = this.owner.getRenderTypeHint();
+		var renderTypes = renderTypeHint != null ? this.owner.getRenderType(renderTypeHint) : RenderTypeGroup.EMPTY;
+		final IModelBuilder<?> builder = IModelBuilder.of(this.useAmbientOcclusion(), this.usesBlockLight(), this.isGui3d(), this.owner.getTransforms(), this.overrides, particle, renderTypes);
 
 		final ConfiguredConduit parts = data.getParts();
 
@@ -83,7 +81,7 @@ public class ConduitBakedModel implements BakedModel{
 		parts.segments().values().forEach(segment -> {
 			final ConduitType<?> type = segment.conduitType();
 			//Texture segments to their corresponding type
-			final BiFunction<Direction, String, String> texturer = (x, y) -> "#segment_"+type.getRegistryName().getPath();
+			final BiFunction<Direction, String, String> texturer = (x, y) -> "#segment_"+type.getResourceLocation().getPath();
 			this.addQuads(segment, texturer, builder);
 		});
 
@@ -104,7 +102,7 @@ public class ConduitBakedModel implements BakedModel{
 					if(passThrough == null && data.hasConnection(type, faceDir))
 						return "#connected";
 					//Default unconnected texture
-					return "#unconnected_"+type.getRegistryName().getPath();
+					return "#unconnected_"+type.getResourceLocation().getPath();
 				};
 				this.addQuads(joint, texturer, builder);
 			});
@@ -117,10 +115,10 @@ public class ConduitBakedModel implements BakedModel{
 		return builder.build();
 	}
 
-	private WrappedVanillaProxy toModel(final ConduitPart part, final BiFunction<Direction, String, String> texturer) {
-		final Vector3f offset = part.offset().copy();
+	private WrappedElementsModel toModel(final ConduitPart part, final BiFunction<Direction, String, String> texturer) {
+		final Vector3f offset = VectorHelper.copy(part.offset());
 		offset.mul(16);
-		WrappedVanillaProxy model = this.parts.get(part.type());
+		WrappedElementsModel model = this.parts.get(part.type());
 		if(part.shape() != null) {
 			final Boxf size = ConduitShapeHelper.toModelBox(part.shape());
 			model = model.size(size.lowerCorner(), size.upperCorner());
@@ -129,7 +127,7 @@ public class ConduitBakedModel implements BakedModel{
 	}
 
 	private void addQuads(final ConduitPart part, final BiFunction<Direction, String, String> texturer, final IModelBuilder<?> builder) {
-		this.toModel(part, texturer).addQuads(this.owner, builder, this.bakery, this.spriteGetter, new ConduitModelTransform(this.modelTransform, part.rotation()), this.modelLocation);
+		this.toModel(part, texturer).addQuads(this.owner, builder, this.bakery, this.spriteGetter, new ConduitModelTransform(this.modelTransform, part.rotation()));
 	}
 
 	private void addQuads(final ConduitPart part, final IModelBuilder<?> builder) {
@@ -158,12 +156,12 @@ public class ConduitBakedModel implements BakedModel{
 
 	@Override
 	public ItemTransforms getTransforms() {
-		return this.owner.getCameraTransforms();
+		return this.owner.getTransforms();
 	}
 
 	@Override
 	public TextureAtlasSprite getParticleIcon() {
-		return this.spriteGetter.apply(this.owner.resolveTexture("#particle"));
+		return this.spriteGetter.apply(this.owner.getMaterial("#particle"));
 	}
 
 	@Override

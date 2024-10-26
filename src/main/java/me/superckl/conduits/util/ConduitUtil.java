@@ -1,5 +1,7 @@
 package me.superckl.conduits.util;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.Iterator;
@@ -13,8 +15,6 @@ import org.apache.commons.io.IOUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import com.mojang.math.Quaternion;
-import com.mojang.math.Vector3f;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -25,24 +25,22 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 public class ConduitUtil {
 
 	/**
 	 * Parses a given resource into a Json element and closes the resource
 	 */
-	public static JsonElement toJson(final Resource resource){
-		InputStreamReader reader = null;
-		try {
-			reader = new InputStreamReader(resource.getInputStream());
+	public static JsonElement toJson(final Resource resource) throws IOException {
+
+		try(BufferedReader reader = resource.openAsReader()) {
 			return JsonParser.parseReader(reader);
-		}finally {
-			IOUtils.closeQuietly(reader);
-			IOUtils.closeQuietly(resource);
 		}
 	}
 
-	public static AABB rotateModelAABB(final AABB box, final Quaternion rotation) {
+	public static AABB rotateModelAABB(final AABB box, final Quaternionf rotation) {
 		final Vector3f bottom = new Vector3f((float) box.minX, (float) box.minY, (float) box.minZ);
 		final Vector3f top = new Vector3f((float) box.maxX, (float) box.maxY, (float) box.maxZ);
 		final Vector3f rotCenter = new Vector3f(0.5F, 0.5F, 0.5F);
@@ -50,8 +48,8 @@ public class ConduitUtil {
 		bottom.sub(rotCenter);
 		top.sub(rotCenter);
 
-		bottom.transform(rotation);
-		top.transform(rotation);
+		bottom.rotate(rotation);
+		top.rotate(rotation);
 
 		bottom.add(rotCenter);
 		top.add(rotCenter);
@@ -109,7 +107,7 @@ public class ConduitUtil {
 
 		private DataResult<Map<K, V>> toMap(final Supplier<? extends Map<K, V>> mapMaker){
 			if(this.keys.size() != this.values.size())
-				return DataResult.error(String.format("Different number of keys %d and values %d!", this.keys.size(), this.values.size()));
+				return DataResult.error(() -> String.format("Different number of keys %d and values %d!", this.keys.size(), this.values.size()));
 			final Map<K, V> map = mapMaker.get();
 			for (int i = 0; i < this.keys.size(); i++)
 				map.put(this.keys.get(i), this.values.get(i));

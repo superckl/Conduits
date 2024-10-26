@@ -3,8 +3,6 @@ package me.superckl.conduits.data.client;
 import java.util.Collection;
 import java.util.Map;
 
-import com.mojang.math.Vector3f;
-
 import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.ModConduits;
@@ -12,24 +10,23 @@ import me.superckl.conduits.ModItems;
 import me.superckl.conduits.conduit.ConduitShapeHelper;
 import me.superckl.conduits.conduit.ConduitShapeHelper.Boxf;
 import me.superckl.conduits.conduit.part.ConduitPartType;
+import me.superckl.conduits.util.VectorHelper;
 import net.minecraft.core.Direction;
 import net.minecraft.data.DataGenerator;
+import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.client.model.generators.BlockModelBuilder;
-import net.minecraftforge.client.model.generators.BlockModelProvider;
-import net.minecraftforge.client.model.generators.BlockStateProvider;
-import net.minecraftforge.client.model.generators.ConfiguredModel;
-import net.minecraftforge.client.model.generators.CustomLoaderBuilder;
-import net.minecraftforge.client.model.generators.ModelBuilder.FaceRotation;
-import net.minecraftforge.client.model.generators.ModelBuilder.Perspective;
-import net.minecraftforge.client.model.generators.VariantBlockStateBuilder;
-import net.minecraftforge.common.data.ExistingFileHelper;
-import net.minecraftforge.registries.RegistryObject;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.client.model.generators.*;
+import net.neoforged.neoforge.client.model.renderable.CompositeRenderable;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import org.joml.Vector3f;
 
-public class ConduitsBlockStateProvider extends BlockStateProvider{
+public class ConduitsBlockStateProvider extends BlockStateProvider {
 
 	public ConduitsBlockStateProvider(final DataGenerator gen, final ExistingFileHelper exFileHelper) {
-		super(gen, Conduits.MOD_ID, exFileHelper);
+		super(gen.getPackOutput(), Conduits.MOD_ID, exFileHelper);
 	}
 
 	@Override
@@ -40,7 +37,7 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 		//JOINTS
 		//Faces are textured by the model loader
 		//Joint for one type
-		this.jointElement(blocks.getBuilder(ConduitPartType.JOINT.path(null)), 1, Vector3f.ZERO);
+		this.jointElement(blocks.getBuilder(ConduitPartType.JOINT.path(null)), 1, VectorHelper.ZERO);
 
 		//Joints for two types
 		//this.jointElement(this.jointElement(blocks.getBuilder(PartType.JOINT.path(null)+"_2"), 1, segmentOffsets2[0]), 2, segmentOffsets2[1]);
@@ -48,19 +45,19 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 		//SEGMENTS
 		//Faces are textures by the model loader
 		//Segments for one type
-		this.segmentElement(blocks.getBuilder(ConduitPartType.SEGMENT.path(null)), 1, Vector3f.ZERO);
+		this.segmentElement(blocks.getBuilder(ConduitPartType.SEGMENT.path(null)), 1, VectorHelper.ZERO);
 
 		//Segments for two types
 		//this.segmentElement(this.segmentElement(blocks.getBuilder(PartType.SEGMENT.path(null)+"_2"),
 		//		1, segmentOffsets2[0]), 2, segmentOffsets2[1]);
 
 		//MIXED JOINT
-		this.sizedElement(blocks.getBuilder(ConduitPartType.MIXED_JOINT.path(null)), ConduitShapeHelper.modelBox(ConduitPartType.MIXED_JOINT), Vector3f.ZERO)
+		this.sizedElement(blocks.getBuilder(ConduitPartType.MIXED_JOINT.path(null)), ConduitShapeHelper.modelBox(ConduitPartType.MIXED_JOINT), VectorHelper.ZERO)
 		.allFaces((dir, face) -> face.texture("#mixed_joint")).end();
 
 		//MACHINE CONNECTION
-		this.sizedElement(this.sizedElement(blocks.getBuilder(ConduitPartType.CONNECTION.path(null)), ConduitShapeHelper.connectionBottomModelBox(), Vector3f.ZERO)
-				.allFaces((dir, builder) -> builder.texture("#connection")).end(), ConduitShapeHelper.connectionTopModelBox(), Vector3f.ZERO)
+		this.sizedElement(this.sizedElement(blocks.getBuilder(ConduitPartType.CONNECTION.path(null)), ConduitShapeHelper.connectionBottomModelBox(), VectorHelper.ZERO)
+				.allFaces((dir, builder) -> builder.texture("#connection")).end(), ConduitShapeHelper.connectionTopModelBox(), VectorHelper.ZERO)
 		.face(Direction.NORTH).texture("#connection").end()
 		.face(Direction.SOUTH).texture("#connection").end()
 		.face(Direction.EAST).texture("#connection").end()
@@ -70,6 +67,7 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 		//CONDUIT BLOCK MODEL
 		//defers to model loader and exposes textures
 		final BlockModelBuilder conduitBuilder = blocks.getBuilder("conduit");
+		conduitBuilder.renderType("cutout");
 		conduitBuilder.parent(this.models().getExistingFile(this.mcLoc("block")));
 		conduitBuilder.customLoader(ConduitModelLoaderBuilder::new);
 		conduitBuilder.texture("particle", this.mcLoc("block/stone"));//TODO temp particle texture
@@ -81,7 +79,7 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 			conduitBuilder.texture("segment_"+obj.getId().getPath(), ConduitPartType.SEGMENT.path(obj));
 		});
 		final BlockModelBuilder.TransformsBuilder transforms = conduitBuilder.transforms();
-		transforms.transform(Perspective.GUI).rotation(30F, 225F, 0F).scale(0.75F).end();
+		transforms.transform(ItemDisplayContext.GUI).rotation(30F, 225F, 0F).scale(0.75F).end();
 
 		//CONDUIT BLOCKSTATE
 		//point to conduit block model
@@ -89,8 +87,8 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 		builder.setModels(builder.partialState(), ConfiguredModel.builder().modelFile(conduitBuilder).build());
 
 		//ITEMS
-		ModItems.CONDUITS.values().stream().map(Map::values).flatMap(Collection::stream).map(RegistryObject::get).forEach(item ->
-		this.itemModels().getBuilder(item.getRegistryName().getPath()).parent(conduitBuilder)
+		ModItems.CONDUITS.values().stream().map(Map::values).flatMap(Collection::stream).forEach(item ->
+			this.itemModels().getBuilder(item.getId().getPath()).parent(conduitBuilder)
 				);
 
 		this.itemModels().singleTexture(ModItems.WRENCH.getId().getPath(), this.mcLoc("item/generated"), "layer0", this.modLoc("item/wrench"));
@@ -99,10 +97,10 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 
 	private BlockModelBuilder segmentElement(final BlockModelBuilder builder, final int index, final Vector3f offset) {
 		return this.sizedElement(builder, ConduitShapeHelper.modelBox(ConduitPartType.SEGMENT), offset)
-				.face(Direction.NORTH).texture("#segment_"+index).uvs(0, 0, 13.25F, 4.25F).rotation(FaceRotation.CLOCKWISE_90).end()//is UV necessary?
-				.face(Direction.SOUTH).texture("#segment_"+index).uvs(0, 0, 13.25F, 4.25F).rotation(FaceRotation.CLOCKWISE_90).end()
-				.face(Direction.EAST).texture("#segment_"+index).uvs(0, 0, 13.25F, 4.25F).rotation(FaceRotation.CLOCKWISE_90).end()
-				.face(Direction.WEST).texture("#segment_"+index).uvs(0, 0, 13.25F, 4.25F).rotation(FaceRotation.CLOCKWISE_90).end()
+				.face(Direction.NORTH).texture("#segment_"+index).uvs(0, 0, 13.25F, 4.25F).rotation(ModelBuilder.FaceRotation.CLOCKWISE_90).end()//is UV necessary?
+				.face(Direction.SOUTH).texture("#segment_"+index).uvs(0, 0, 13.25F, 4.25F).rotation(ModelBuilder.FaceRotation.CLOCKWISE_90).end()
+				.face(Direction.EAST).texture("#segment_"+index).uvs(0, 0, 13.25F, 4.25F).rotation(ModelBuilder.FaceRotation.CLOCKWISE_90).end()
+				.face(Direction.WEST).texture("#segment_"+index).uvs(0, 0, 13.25F, 4.25F).rotation(ModelBuilder.FaceRotation.CLOCKWISE_90).end()
 				.face(Direction.UP).texture("#segment_"+index).uvs(1, 0, 2.25F, 1.25F).end().end();
 	}
 
@@ -116,10 +114,10 @@ public class ConduitsBlockStateProvider extends BlockStateProvider{
 				.to(size.maxX()+offset.x(), size.maxY()+offset.y(), size.maxZ()+offset.z());
 	}
 
-	public static class ConduitModelLoaderBuilder extends CustomLoaderBuilder<BlockModelBuilder>{
+	public static class ConduitModelLoaderBuilder extends CustomLoaderBuilder<BlockModelBuilder> {
 
 		public ConduitModelLoaderBuilder(final BlockModelBuilder parent, final ExistingFileHelper existingFileHelper) {
-			super(new ResourceLocation(Conduits.MOD_ID, "conduit"), parent, existingFileHelper);
+			super(ResourceLocation.fromNamespaceAndPath(Conduits.MOD_ID, "conduit"), parent, existingFileHelper, false);
 		}
 
 	}

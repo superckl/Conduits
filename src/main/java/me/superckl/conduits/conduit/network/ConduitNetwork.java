@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import me.superckl.conduits.ModAttachments;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.base.Predicates;
@@ -37,7 +38,7 @@ public class ConduitNetwork<T extends TransferrableQuantity> {
 		this.type = type;
 		this.graph = graph;
 		if(!level.isClientSide)
-			this.level.getCapability(NetworkTicker.CAPABILITY).ifPresent(ticker -> ticker.add(this));
+			this.level.getData(ModAttachments.NETWORK_TICKER).add(this);
 	}
 
 	/**
@@ -84,7 +85,7 @@ public class ConduitNetwork<T extends TransferrableQuantity> {
 	private void invalidate() {
 		this.changedBEs.clear();
 		this.graph.invalidate();
-		this.level.getCapability(NetworkTicker.CAPABILITY).ifPresent(ticker -> ticker.remove(this));
+		this.level.getData(ModAttachments.NETWORK_TICKER).remove(this);
 	}
 
 	/**
@@ -100,7 +101,6 @@ public class ConduitNetwork<T extends TransferrableQuantity> {
 		return network2.merge(network1);
 	}
 
-	@SuppressWarnings("resource")
 	public void connectionChange(final ConduitBlockEntity conduit) {
 		if(conduit.getLevel().isClientSide)
 			return;
@@ -215,8 +215,8 @@ public class ConduitNetwork<T extends TransferrableQuantity> {
 
 	@Override
 	public String toString() {
-		return new StringBuilder("ConduitNetwork[Type: ").append(this.type.getRegistryName().getPath())
-				.append(", Graph: ").append(this.graph).append("]").toString();
+		return "ConduitNetwork[Type: " + this.type.getResourceLocation().getPath() +
+                ", Graph: " + this.graph + "]";
 	}
 
 }

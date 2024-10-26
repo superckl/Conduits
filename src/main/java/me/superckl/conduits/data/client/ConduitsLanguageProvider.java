@@ -6,12 +6,12 @@ import me.superckl.conduits.ModConduits;
 import me.superckl.conduits.ModItems;
 import me.superckl.conduits.conduit.ConduitTier;
 import net.minecraft.data.DataGenerator;
-import net.minecraftforge.common.data.LanguageProvider;
+import net.neoforged.neoforge.common.data.LanguageProvider;
 
-public class ConduitsLanguageProvider extends LanguageProvider{
+public class ConduitsLanguageProvider extends LanguageProvider {
 
 	public ConduitsLanguageProvider(final DataGenerator gen) {
-		super(gen, Conduits.MOD_ID, "en_us");
+		super(gen.getPackOutput(), Conduits.MOD_ID, "en_us");
 	}
 
 	@Override

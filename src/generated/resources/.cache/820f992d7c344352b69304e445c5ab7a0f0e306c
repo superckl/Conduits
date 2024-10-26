@@ -1,0 +1,17 @@
+// 1.21.1	2024-10-26T13:11:27.4727396	Block States: conduits
+26e2b81c46ccabca17beb2af3a5bfac9b4ae491d assets/conduits/blockstates/conduit.json
+07e84b8708b2ac060ad5b771dac32ca3ac83b956 assets/conduits/models/block/conduit.json
+65163a4e822ddeb6ca3e7bc254c72d8e1c177775 assets/conduits/models/conduit/inventory_connection.json
+9c3f1bb356558a55e998778161a2aa178cd4f04a assets/conduits/models/conduit/joint.json
+836d1ba29232808d566a45e122f44cfff3da9582 assets/conduits/models/conduit/mixed_joint.json
+0b8e94eb997bdcc49d8f6fba4e0ec72a927fe98f assets/conduits/models/conduit/segment.json
+69cb134dec77d32e496a5e57bde2917a4fbb3254 assets/conduits/models/item/energy_conduit_early.json
+69cb134dec77d32e496a5e57bde2917a4fbb3254 assets/conduits/models/item/energy_conduit_late.json
+69cb134dec77d32e496a5e57bde2917a4fbb3254 assets/conduits/models/item/energy_conduit_middle.json
+69cb134dec77d32e496a5e57bde2917a4fbb3254 assets/conduits/models/item/fluid_conduit_early.json
+69cb134dec77d32e496a5e57bde2917a4fbb3254 assets/conduits/models/item/fluid_conduit_late.json
+69cb134dec77d32e496a5e57bde2917a4fbb3254 assets/conduits/models/item/fluid_conduit_middle.json
+69cb134dec77d32e496a5e57bde2917a4fbb3254 assets/conduits/models/item/item_conduit_early.json
+69cb134dec77d32e496a5e57bde2917a4fbb3254 assets/conduits/models/item/item_conduit_late.json
+69cb134dec77d32e496a5e57bde2917a4fbb3254 assets/conduits/models/item/item_conduit_middle.json
+aedf21d15504d738b2dab4855e59328d35df3525 assets/conduits/models/item/wrench.json

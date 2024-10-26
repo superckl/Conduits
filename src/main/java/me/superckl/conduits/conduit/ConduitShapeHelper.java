@@ -8,10 +8,9 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import com.mojang.math.Axis;
+import me.superckl.conduits.util.VectorHelper;
 import org.apache.commons.lang3.tuple.Pair;
-
-import com.mojang.math.Quaternion;
-import com.mojang.math.Vector3f;
 
 import it.unimi.dsi.fastutil.floats.FloatFloatPair;
 import me.superckl.conduits.conduit.connection.ConduitConnection;
@@ -22,6 +21,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 public class ConduitShapeHelper {
 
@@ -53,14 +54,14 @@ public class ConduitShapeHelper {
 	public static Vector3f[] segmentOffsets(final int numSegments, @Nullable final Direction dir){
 		final Vector3f[] offsets = switch (numSegments) {
 		case 0 -> new Vector3f[0];
-		case 1 -> new Vector3f[] {Vector3f.ZERO};
+		case 1 -> new Vector3f[] {VectorHelper.ZERO};
 		case 2 -> new Vector3f[] {new Vector3f(1.75F/16F, 0, 0), new Vector3f(-1.75F/16F, 0, 0)};
 		case 3 -> new Vector3f[] {new Vector3f(1.75F/16F, 0, -1.75F/16F), new Vector3f(-1.75F/16F, 0, -1.75F/16F), new Vector3f(0, 0, 1.75F/16F)};
 		default -> throw new IllegalArgumentException("Unsupported number of segments "+numSegments);
 		};
 		if(dir != null && !ConduitShapeHelper.isSegmentMasterDirection(dir))
 			for(final Vector3f offset:offsets)
-				offset.setZ(-offset.z());
+				offset.setComponent(2, -offset.z());
 		return offsets;
 	}
 
@@ -79,25 +80,25 @@ public class ConduitShapeHelper {
 				(float) bounds.maxX*16, (float) bounds.maxY*16, (float) bounds.maxZ*16);
 	}
 
-	public static Quaternion segmentRotation(final Direction facing) {
+	public static Quaternionf segmentRotation(final Direction facing) {
 		if(facing == null)
-			return Quaternion.ONE;
+			return new Quaternionf();
 		//These rotations are chosen to preserve the x-alignment of the segments/joints
 		//Since it is impossible to preserve both x and y alignment, y-alignment is
 		//corrected for by reflecting the y-coordinate when calculating offsets
 		return switch(facing) {
-		case DOWN -> Vector3f.XP.rotationDegrees(180F);
-		case UP -> Quaternion.ONE;
-		case NORTH -> Vector3f.XP.rotationDegrees(-90F);
-		case SOUTH -> Vector3f.XP.rotationDegrees(90F);
+		case DOWN -> Axis.XP.rotationDegrees(180F);
+		case UP -> new Quaternionf();
+		case NORTH -> Axis.XP.rotationDegrees(-90F);
+		case SOUTH -> Axis.XP.rotationDegrees(90F);
 		case WEST -> {
-			final Quaternion counter = Vector3f.XP.rotationDegrees(90F);
-			counter.mul(Vector3f.ZP.rotationDegrees(90F));
+			final Quaternionf counter = Axis.XP.rotationDegrees(90F);
+			counter.mul(Axis.ZP.rotationDegrees(90F));
 			yield counter;
 		}
 		case EAST -> {
-			final Quaternion clockwise = Vector3f.XP.rotationDegrees(-90F);
-			clockwise.mul(Vector3f.ZP.rotationDegrees(-90F));
+			final Quaternionf clockwise = Axis.XP.rotationDegrees(-90F);
+			clockwise.mul(Axis.ZP.rotationDegrees(-90F));
 			yield clockwise;
 		}
 		default -> throw new IncompatibleClassChangeError();
@@ -148,7 +149,7 @@ public class ConduitShapeHelper {
 		return types.stream().sorted().toArray(ConduitType[]::new);
 	}
 
-	public static record Boxf(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+	public record Boxf(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
 
 		public Vector3f lowerCorner() {
 			return new Vector3f(this.minX, this.minY, this.minZ);

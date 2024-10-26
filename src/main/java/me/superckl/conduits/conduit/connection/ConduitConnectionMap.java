@@ -10,13 +10,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import me.superckl.conduits.util.VectorHelper;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.math.IntMath;
-import com.mojang.math.Quaternion;
-import com.mojang.math.Vector3f;
 import com.mojang.serialization.Codec;
 
 import it.unimi.dsi.fastutil.booleans.BooleanObjectImmutablePair;
@@ -38,6 +37,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.phys.AABB;
+import org.joml.Quaternionf;
 
 @RequiredArgsConstructor
 @EqualsAndHashCode
@@ -221,7 +221,7 @@ public class ConduitConnectionMap {
 			if(map.values().stream().map(Pair::getRight).map(ConduitConnection::getConnectionType)
 					.anyMatch(ConduitConnectionType.INVENTORY::equals))
 				connections.put(dir, new ConduitPart(ConduitPartType.CONNECTION, null, null,
-						Vector3f.ZERO, null, ConduitShapeHelper.segmentRotation(dir)));
+						VectorHelper.ZERO, null, ConduitShapeHelper.segmentRotation(dir)));
 		});
 
 		final List<ConduitPart> joints = new ArrayList<>();
@@ -232,8 +232,8 @@ public class ConduitConnectionMap {
 			final AABB size = ConduitShapeHelper.boundMixedJoint(byDir.entrySet().stream()
 					.collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().size(),
 							(i, j) -> i + j, () -> new EnumMap<>(Direction.class))));
-			mixedJoint = new ConduitPart(ConduitPartType.MIXED_JOINT, null, null, Vector3f.ZERO,
-					size,  Quaternion.ONE);
+			mixedJoint = new ConduitPart(ConduitPartType.MIXED_JOINT, null, null, VectorHelper.ZERO,
+					size,  new Quaternionf());
 		}else {
 			final var offsets = ConduitShapeHelper.segmentOffsets(types.length, jointState.right());
 			for(int i = 0; i < types.length; i++)

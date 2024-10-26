@@ -1,16 +1,23 @@
 package me.superckl.conduits.packets;
 
 import me.superckl.conduits.Conduits;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.simple.SimpleChannel;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
+@EventBusSubscriber(modid = Conduits.MOD_ID, bus = EventBusSubscriber.Bus.MOD)
 public class ConduitsPacketHandler {
 
 	private static final String PROTOCOL_VERSION = "1";
 
-	public static final SimpleChannel INSTANCE = NetworkRegistry.newSimpleChannel(new ResourceLocation(Conduits.MOD_ID, "conduits"),
-			() -> ConduitsPacketHandler.PROTOCOL_VERSION, ConduitsPacketHandler.PROTOCOL_VERSION::equals,
-			ConduitsPacketHandler.PROTOCOL_VERSION::equals);
+	@SubscribeEvent
+	public static void register(final RegisterPayloadHandlersEvent e){
+		final PayloadRegistrar registrar = e.registrar(PROTOCOL_VERSION);
+		registrar.playToServer(SyncConduitSettingPacket.Data.TYPE, SyncConduitSettingPacket.Data.STREAM_CODEC, SyncConduitSettingPacket::handleServer);
+	}
 
 }

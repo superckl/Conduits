@@ -1,0 +1,9 @@
+{
+  "sources": [
+    {
+      "type": "conduits:directory",
+      "source": "conduit",
+      "prefix": "conduit/"
+    }
+  ]
+}

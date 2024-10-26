@@ -14,17 +14,18 @@
       ]
     }
   },
+  "loader": "conduits:conduit",
+  "render_type": "minecraft:cutout",
   "textures": {
-    "particle": "minecraft:block/stone",
-    "mixed_joint": "conduits:conduit/mixed_joint",
-    "connection": "conduits:conduit/mixed_joint",
     "connected": "conduits:conduit/joint",
-    "unconnected_item": "conduits:conduit/item_joint",
+    "connection": "conduits:conduit/mixed_joint",
+    "mixed_joint": "conduits:conduit/mixed_joint",
+    "particle": "minecraft:block/stone",
+    "segment_energy": "conduits:conduit/energy_segment",
+    "segment_fluid": "conduits:conduit/fluid_segment",
     "segment_item": "conduits:conduit/item_segment",
     "unconnected_energy": "conduits:conduit/energy_joint",
-    "segment_energy": "conduits:conduit/energy_segment",
     "unconnected_fluid": "conduits:conduit/fluid_joint",
-    "segment_fluid": "conduits:conduit/fluid_segment"
-  },
-  "loader": "conduits:conduit"
+    "unconnected_item": "conduits:conduit/item_joint"
+  }
 }

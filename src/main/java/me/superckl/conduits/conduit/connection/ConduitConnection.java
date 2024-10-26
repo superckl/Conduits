@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 
 import com.google.common.base.Objects;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import lombok.Getter;
@@ -16,14 +17,13 @@ import me.superckl.conduits.conduit.network.inventory.TransferrableQuantity;
 import me.superckl.conduits.util.WarningHelper;
 import net.minecraft.core.Direction;
 
+@Getter
 public abstract class ConduitConnection {
 
 	public static final Codec<ConduitConnection> CODEC =  Identifier.CODEC
-			.dispatch(ConduitConnection::getIdentifier, id -> id.type().getCodec(id.connectionType()));
+			.dispatch(ConduitConnection::getIdentifier, id -> id.type().getCodec(id.connectionType()).fieldOf("value"));
 
-	@Getter
 	private final ConduitType<?> type;
-	@Getter
 	private final Identifier identifier;
 
 	protected ConduitConnection(final ConduitType<?> type) {
@@ -196,9 +196,9 @@ public abstract class ConduitConnection {
 
 	}
 
-	private static record Identifier(ConduitConnectionType connectionType, ConduitType<?> type) {
+	private record Identifier(ConduitConnectionType connectionType, ConduitType<?> type) {
 
-		private static Codec<Identifier> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+		private static final Codec<Identifier> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 				ConduitConnectionType.CODEC.fieldOf("connectionType").forGetter(Identifier::connectionType),
 				ModConduits.TYPES_CODEC.fieldOf("conduitType").forGetter(Identifier::type))
 				.apply(instance, Identifier::new));

@@ -6,26 +6,19 @@ import java.util.Iterator;
 import java.util.List;
 
 import me.superckl.conduits.Conduits;
+import me.superckl.conduits.ModAttachments;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.animal.TropicalFish;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityManager;
-import net.minecraftforge.common.capabilities.CapabilityToken;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.TickEvent.Phase;
-import net.minecraftforge.event.TickEvent.WorldTickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.capabilities.BaseCapability;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
 @EventBusSubscriber(modid = Conduits.MOD_ID)
 public class NetworkTicker {
-
-	public static final Capability<NetworkTicker> CAPABILITY = CapabilityManager.get(new CapabilityToken<>() {});
-	private static final ResourceLocation CAP_LOC = new ResourceLocation(Conduits.MOD_ID, "network_ticker");
 
 	private final List<WeakReference<ConduitNetwork<?>>> networks = new ArrayList<>();
 	private final List<ConduitNetwork<?>> toAdd = new ArrayList<>();
@@ -54,29 +47,10 @@ public class NetworkTicker {
 	}
 
 	@SubscribeEvent
-	public static void onLevelTick(final WorldTickEvent e) {
-		if(e.side == LogicalSide.CLIENT || e.phase == Phase.START)
+	public static void onLevelTick(final LevelTickEvent.Post e) {
+		if(e.getLevel().isClientSide())
 			return;
-		e.world.getCapability(NetworkTicker.CAPABILITY).ifPresent(NetworkTicker::tick);
-	}
-
-	@SuppressWarnings("resource")
-	@SubscribeEvent
-	public static void attachCaps(final AttachCapabilitiesEvent<Level> e) {
-		if(e.getObject().isClientSide)
-			return;
-		e.addCapability(NetworkTicker.CAP_LOC, new Provider());
-	}
-
-	public static class Provider implements ICapabilityProvider{
-
-		private final LazyOptional<NetworkTicker> ticker = LazyOptional.of(NetworkTicker::new);
-
-		@Override
-		public <T> LazyOptional<T> getCapability(final Capability<T> cap, final Direction side) {
-			return NetworkTicker.CAPABILITY.orEmpty(cap, this.ticker);
-		}
-
+		e.getLevel().getData(ModAttachments.NETWORK_TICKER.get()).tick();
 	}
 
 }

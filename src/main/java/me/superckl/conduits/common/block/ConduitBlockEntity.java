@@ -20,6 +20,7 @@ import me.superckl.conduits.conduit.network.inventory.TransferrableQuantity;
 import me.superckl.conduits.util.WarningHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
@@ -28,11 +29,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.client.model.data.IModelData;
-import net.minecraftforge.client.model.data.ModelDataMap;
-import net.minecraftforge.client.model.data.ModelProperty;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.neoforge.client.model.data.ModelProperty;
+import org.jetbrains.annotations.NotNull;
 
 public class ConduitBlockEntity extends BlockEntity{
 
@@ -126,7 +125,7 @@ public class ConduitBlockEntity extends BlockEntity{
 	/**
 	 * Attempts to establish or remove connections. Marks the block entity dirty if a connection was established (or removed)
 	 * @param dir The direction in which to check connections
-	 * @param state The blockstate that exists in that direction
+	 * @param block The blockstate that exists in that direction
 	 */
 	private void tryConnect(final Direction dir, final Block block){
 		if(!(block instanceof EntityBlock)) {
@@ -174,7 +173,7 @@ public class ConduitBlockEntity extends BlockEntity{
 		final BlockEntity inventory = this.level.getBlockEntity(this.worldPosition.relative(dir));
 		if(inventory == null || !type.canConnect(dir.getOpposite(), inventory)) {
 			Conduits.LOG.warn("Conduit at %s was connected to inventory %s at %s but that inventory is not connectable!",
-					this.worldPosition, inventory == null ? "N/A (null)" : inventory.getType().getRegistryName(),
+					this.worldPosition, inventory == null ? "N/A (null)" : inventory.getType().builtInRegistryHolder().getKey().location(),
 							this.worldPosition.relative(dir));
 			this.discoverNeighbors();
 			return Optional.empty();
@@ -255,21 +254,9 @@ public class ConduitBlockEntity extends BlockEntity{
 	}
 
 	@Override
-	public <T> LazyOptional<T> getCapability(final Capability<T> cap, final Direction side) {
-		//TODO
-		return super.getCapability(cap, side);
-	}
-
-	@Override
-	public void invalidateCaps() {
-		//TODO
-		super.invalidateCaps();
-	}
-
-	@Override
-	public CompoundTag getUpdateTag() {
+	public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider pRegistries) {
 		// TODO sync only what changed, requires custom packets
-		return this.saveWithoutMetadata();
+		return this.saveWithoutMetadata(pRegistries);
 	}
 
 	@Override
@@ -279,8 +266,8 @@ public class ConduitBlockEntity extends BlockEntity{
 	}
 
 	@Override
-	public void onDataPacket(final Connection net, final ClientboundBlockEntityDataPacket pkt) {
-		super.onDataPacket(net, pkt);
+	public void onDataPacket(final Connection net, final ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider pRegistries) {
+		super.onDataPacket(net, pkt, pRegistries);
 		if(this.level.isClientSide)
 			this.connectionChange();
 	}
@@ -288,25 +275,26 @@ public class ConduitBlockEntity extends BlockEntity{
 	private static final String DATA_KEY = "conduit_data";
 
 	@Override
-	public void load(final CompoundTag pTag) {
-		super.load(pTag);
+	protected void loadAdditional(CompoundTag pTag, HolderLookup.Provider pRegistries) {
+		super.loadAdditional(pTag, pRegistries);
 		if(pTag.contains(ConduitBlockEntity.DATA_KEY, Tag.TAG_COMPOUND)) {
 			final CompoundTag conduitData = pTag.getCompound(ConduitBlockEntity.DATA_KEY);
 			this.connections.load(conduitData, this);
 		}
 	}
+
 	@Override
-	protected void saveAdditional(final CompoundTag pTag) {
+	protected void saveAdditional(final CompoundTag pTag, HolderLookup.Provider pRegistries) {
 		pTag.put(ConduitBlockEntity.DATA_KEY, this.connections.serialize());
-		super.saveAdditional(pTag);
+		super.saveAdditional(pTag, pRegistries);
 	}
 
 	//MODEL DATA
 	public static final ModelProperty<ConduitConnectionMap> CONNECTION_PROPERTY = new ModelProperty<>();
 
 	@Override
-	public IModelData getModelData() {
-		return new ModelDataMap.Builder().withInitial(ConduitBlockEntity.CONNECTION_PROPERTY, this.connections).build();
+	public @NotNull ModelData getModelData() {
+		return ModelData.of(ConduitBlockEntity.CONNECTION_PROPERTY, this.connections);
 	}
 
 }

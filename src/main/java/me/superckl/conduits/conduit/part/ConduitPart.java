@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
-import com.mojang.math.Quaternion;
-import com.mojang.math.Vector3f;
 
 import lombok.Builder;
 import me.superckl.conduits.conduit.ConduitShapeHelper;
@@ -17,10 +15,12 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 @Builder
 public record ConduitPart(ConduitPartType type, ConduitTier tier, ConduitType<?> conduitType,
-		Vector3f offset, AABB shape, Quaternion rotation) {
+						  Vector3f offset, AABB shape, Quaternionf rotation) {
 
 	public static final Vector3f ONE = new Vector3f(1, 1, 1);
 

@@ -8,32 +8,30 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 
 public class TabWidget extends AbstractWidget{
 
 	private final Type type;
 	private final Consumer<? super TabWidget> onPress;
 	private final ButtonImageProvider imageProvider;
-	private final Tooltip<? super TabWidget> tooltip;
 	@Setter @Getter
 	private boolean selected;
 
-	public TabWidget(final int pX, final int pY, final Type type, final Tooltip<? super TabWidget> tooltip,
+	public TabWidget(final int pX, final int pY, final Type type,
 			final Consumer<? super TabWidget> onPress, final ButtonImageProvider imageProvider) {
-		super(pX, pY, type.width, 30, TextComponent.EMPTY);
+		super(pX, pY, type.width, 30, Component.empty());
 		this.type = type;
 		this.onPress = onPress;
 		this.imageProvider = imageProvider;
-		this.tooltip = tooltip;
 	}
 
 	@Override
-	public void renderButton(final PoseStack pPoseStack, final int pMouseX, final int pMouseY, final float pPartialTick) {
+	public void renderWidget(final GuiGraphics pGuiGraphics, final int pMouseX, final int pMouseY, final float pPartialTick) {
 		RenderSystem.setShader(GameRenderer::getPositionTexShader);
 		RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
 		RenderSystem.setShaderTexture(0, InventoryConnectionScreen.BACKGROUND_LOCATION);
@@ -45,18 +43,14 @@ public class TabWidget extends AbstractWidget{
 		case RIGHT -> Type.LEFT.width+Type.MIDDLE.width;
 		};
 		final int texYOffset = this.selected ? 30 : 0;
-		this.blit(pPoseStack, this.x, this.y+yOffset, texXOffset, 166+texYOffset, this.type.width, 30-yOffset);
+		pGuiGraphics.blit(InventoryConnectionScreen.BACKGROUND_LOCATION, this.getX(), this.getY()+yOffset, this.type.width, 30-yOffset, texXOffset, 166+texYOffset,
+				this.type.width, 30-yOffset, 256,  256);
 
 		RenderSystem.setShaderTexture(0, InventoryConnectionScreen.WIDGETS_LOCATION);
 		final int decalWidth = this.width-2*5;
 		final int decalHeight = this.height-2*6;
-		GuiComponent.blit(pPoseStack, this.x+5, this.y+7, decalWidth, decalHeight, this.imageProvider.getTexX(),
+		pGuiGraphics.blit(InventoryConnectionScreen.WIDGETS_LOCATION, this.getX()+5, this.getY()+7, decalWidth, decalHeight, this.imageProvider.getTexX(),
 				this.imageProvider.getTexY(), this.imageProvider.getWidth(), this.imageProvider.getHeight(), 256, 256);
-	}
-
-	@Override
-	public void renderToolTip(final PoseStack pPoseStack, final int pMouseX, final int pMouseY) {
-		this.tooltip.renderTooltip(this, pPoseStack, pMouseX, pMouseY);
 	}
 
 	@Override
@@ -70,8 +64,8 @@ public class TabWidget extends AbstractWidget{
 	}
 
 	@Override
-	public void updateNarration(final NarrationElementOutput pNarrationElementOutput) {
-		// TODO
+	protected void updateWidgetNarration(NarrationElementOutput pNarrationElementOutput) {
+		//TODO
 	}
 
 	@RequiredArgsConstructor

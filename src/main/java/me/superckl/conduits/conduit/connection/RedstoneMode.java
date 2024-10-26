@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.client.screen.ButtonImageProvider;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.util.StringRepresentable;
 
 @Getter
@@ -26,7 +25,7 @@ public enum RedstoneMode implements ButtonImageProvider, StringRepresentable{
 	DISABLED("disabled", 0, 84);
 
 	private static final Map<String, RedstoneMode> BY_NAME = Arrays.stream(RedstoneMode.values()).collect(Collectors.toMap(StringRepresentable::getSerializedName, v -> v));
-	public static final Codec<RedstoneMode> CODEC = StringRepresentable.fromEnum(RedstoneMode::values, RedstoneMode.BY_NAME::get);
+	public static final Codec<RedstoneMode> CODEC = StringRepresentable.fromEnum(RedstoneMode::values);
 
 	private final String name;
 	private final int texX;
@@ -41,8 +40,8 @@ public enum RedstoneMode implements ButtonImageProvider, StringRepresentable{
 	@Override
 	public List<Component> getTooltip(){
 		if(this.tooltip == null)
-			this.tooltip = ImmutableList.of(new TranslatableComponent("conduits.redstone").withStyle(ChatFormatting.WHITE),
-					new TranslatableComponent("conduits.redstone."+this.name).withStyle(ChatFormatting.GRAY));
+			this.tooltip = ImmutableList.of(Component.translatable("conduits.redstone").withStyle(ChatFormatting.WHITE),
+					Component.translatable("conduits.redstone."+this.name).withStyle(ChatFormatting.GRAY));
 		return this.tooltip;
 	}
 

@@ -13,13 +13,11 @@ import me.superckl.conduits.conduit.ConduitType;
 import me.superckl.conduits.conduit.connection.ConduitConnection;
 import me.superckl.conduits.conduit.connection.ConduitConnectionType;
 import me.superckl.conduits.conduit.connection.InventoryConnectionSettings;
-import me.superckl.conduits.packets.ConduitsPacketHandler;
 import me.superckl.conduits.packets.SyncConduitSettingPacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -28,7 +26,8 @@ import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.ContainerListener;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.PacketDistributor;
+import org.jetbrains.annotations.NotNull;
 
 public class InventoryConnectionMenu extends AbstractContainerMenu{
 
@@ -43,7 +42,7 @@ public class InventoryConnectionMenu extends AbstractContainerMenu{
 	public InventoryConnectionMenu(final int pContainerId, final Inventory inv, final BlockPos pos, final Direction dir) {
 		super(ModContainers.INVENTORY_CONNECTION.get(), pContainerId);
 		this.dir = dir;
-		this.conduit = inv.player.level.getBlockEntity(pos, ModBlocks.CONDUIT_ENTITY.get()).orElse(null);
+		this.conduit = inv.player.level().getBlockEntity(pos, ModBlocks.CONDUIT_ENTITY.get()).orElse(null);
 
 		if(this.conduit == null)
 			this.types = Collections.emptyMap();
@@ -53,7 +52,7 @@ public class InventoryConnectionMenu extends AbstractContainerMenu{
 			.filter(con -> con.getConnectionType() == ConduitConnectionType.INVENTORY).map(ConduitConnection::asInventory)
 			.collect(Collectors.toMap(ConduitConnection::getType, invCon -> {
 				InventoryConnectionSettings settings = invCon.getSettings();
-				if(inv.player.level.isClientSide)
+				if(inv.player.level().isClientSide)
 					settings = settings.copy(x -> this.slotsChanged(null));
 				return new SettingsData(settings);
 			}, (x,y) -> {throw new UnsupportedOperationException();}, Object2ObjectOpenHashMap::new));
@@ -70,11 +69,11 @@ public class InventoryConnectionMenu extends AbstractContainerMenu{
 		this.addSlotListener(new ContainerListener() {
 
 			@Override
-			public void slotChanged(final AbstractContainerMenu pContainerToSend, final int pSlotInd, final ItemStack pStack) {}
+			public void slotChanged(final @NotNull AbstractContainerMenu pContainerToSend, final int pSlotInd, final @NotNull ItemStack pStack) {}
 
 			@Override
-			public void dataChanged(final AbstractContainerMenu pContainerMenu, final int pDataSlotIndex, final int pValue) {
-				ConduitsPacketHandler.INSTANCE.send(PacketDistributor.SERVER.noArg(), new SyncConduitSettingPacket(pDataSlotIndex, pValue));
+			public void dataChanged(final @NotNull AbstractContainerMenu pContainerMenu, final int pDataSlotIndex, final int pValue) {
+				PacketDistributor.sendToServer(new SyncConduitSettingPacket.Data(pDataSlotIndex, pValue));
 			}
 		});
 
@@ -89,7 +88,12 @@ public class InventoryConnectionMenu extends AbstractContainerMenu{
 	}
 
 	@Override
-	public boolean stillValid(final Player pPlayer) {
+	public @NotNull ItemStack quickMoveStack(@NotNull Player pPlayer, int pIndex) {
+		return ItemStack.EMPTY;
+	}
+
+	@Override
+	public boolean stillValid(final @NotNull Player pPlayer) {
 		return this.conduit != null && !this.conduit.isRemoved();
 	}
 
@@ -127,13 +131,13 @@ public class InventoryConnectionMenu extends AbstractContainerMenu{
 		return new MenuProvider() {
 
 			@Override
-			public AbstractContainerMenu createMenu(final int pContainerId, final Inventory pInventory, final Player pPlayer) {
+			public AbstractContainerMenu createMenu(final int pContainerId, final @NotNull Inventory pInventory, final @NotNull Player pPlayer) {
 				return new InventoryConnectionMenu(pContainerId, pInventory, pos, dir);
 			}
 
 			@Override
-			public Component getDisplayName() {
-				return new TranslatableComponent("conduit.gui.connection.title");
+			public @NotNull Component getDisplayName() {
+				return Component.translatable("conduit.gui.connection.title");
 			}
 		};
 	}

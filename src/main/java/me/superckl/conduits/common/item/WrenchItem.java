@@ -1,6 +1,5 @@
 package me.superckl.conduits.common.item;
 
-import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModItems;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.part.ConduitPartType;
@@ -11,17 +10,17 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import org.jetbrains.annotations.NotNull;
 
 public class WrenchItem extends Item{
 
 	public WrenchItem() {
-		super(new Properties().stacksTo(1).tab(Conduits.CONDUIT_TAB));
+		super(new Properties().stacksTo(1));
 	}
 
-	@SuppressWarnings("resource")
 	@Override
-	public InteractionResult onItemUseFirst(final ItemStack stack, final UseOnContext context) {
+	public @NotNull InteractionResult onItemUseFirst(final @NotNull ItemStack stack, final UseOnContext context) {
 		if(context.getLevel().getBlockEntity(context.getClickedPos()) instanceof final ConduitBlockEntity conduit) {
 			final BlockPos pos = context.getClickedPos();
 
@@ -31,7 +30,7 @@ public class WrenchItem extends Item{
 					return InteractionResult.sidedSuccess(context.getLevel().isClientSide);
 				}
 				if(conduit.removeType(part.conduitType())) {
-					final RegistryObject<ConduitItem> item = ModItems.CONDUITS.get(part.conduitType().getRegistryName()).get(part.tier());
+					final DeferredHolder<Item, ConduitItem> item = ModItems.CONDUITS.get(part.conduitType().getResourceLocation()).get(part.tier());
 					Containers.dropItemStack(context.getLevel(), pos.getX(), pos.getY(), pos.getZ(), new ItemStack(item::get));
 					return InteractionResult.sidedSuccess(context.getLevel().isClientSide);
 				}

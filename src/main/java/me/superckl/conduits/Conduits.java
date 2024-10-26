@@ -2,6 +2,16 @@ package me.superckl.conduits;
 
 import java.util.Optional;
 
+import net.minecraft.network.chat.Component;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModList;
+import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLLoader;
+import net.neoforged.fml.loading.FMLServiceProvider;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,12 +23,7 @@ import me.superckl.conduits.server.command.ViewNetworkCommand;
 import net.minecraft.commands.Commands;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.network.NetworkDirection;
+import org.jetbrains.annotations.NotNull;
 
 @Mod(Conduits.MOD_ID)
 public class Conduits {
@@ -28,34 +33,22 @@ public class Conduits {
 
 	public static final Logger LOG = LogManager.getFormatterLogger(Conduits.MOD_ID);
 
-	public Conduits() {
+	public Conduits(IEventBus modBus) {
 
-		final var bus = FMLJavaModLoadingContext.get().getModEventBus();
 
-		bus.addListener(this::registerCaps);
+		ModAttachments.ATTACHMENT_TYPES.register(modBus);
+		ModTabs.TABS.register(modBus);
+		ModBlocks.BLOCKS.register(modBus);
+		ModBlocks.ENTITIES.register(modBus);
+		ModItems.ITEMS.register(modBus);
+		ModContainers.MENU_TYPES.register(modBus);
+		ModConduits.TYPES.register(modBus);
 
-		ModBlocks.BLOCKS.register(bus);
-		ModBlocks.ENTITIES.register(bus);
-		ModItems.ITEMS.register(bus);
-		ModContainers.MENU_TYPES.register(bus);
-		ModConduits.TYPES.register(bus);
-
-		Conduits.CONDUIT_TAB = new CreativeModeTab(Conduits.MOD_ID) {
-			@Override
-			public ItemStack makeIcon() {
-				return ModItems.CONDUITS.get(ModConduits.ENERGY.getId()).get(ConduitTier.MIDDLE).get().getDefaultInstance();
-			}
+		Conduits.CONDUIT_TAB = new CreativeModeTab(CreativeModeTab.builder().title(Component.translatable("itemGroup.conduits")).icon(() -> ModItems.CONDUITS.get(ModConduits.ENERGY.getId()).get(ConduitTier.MIDDLE).get().getDefaultInstance())) {
 		};
 
-		MinecraftForge.EVENT_BUS.addListener(this::registerCommands);
+		NeoForge.EVENT_BUS.addListener(this::registerCommands);
 
-		ConduitsPacketHandler.INSTANCE.registerMessage(0, SyncConduitSettingPacket.class, SyncConduitSettingPacket::write,
-				SyncConduitSettingPacket::new, SyncConduitSettingPacket::handle, Optional.of(NetworkDirection.PLAY_TO_SERVER));
-
-	}
-
-	private void registerCaps(final RegisterCapabilitiesEvent e) {
-		e.register(NetworkTicker.class);
 	}
 
 	private void registerCommands(final RegisterCommandsEvent e) {

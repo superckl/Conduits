@@ -14,23 +14,24 @@ import me.superckl.conduits.conduit.connection.InventoryConnectionSettings.Setti
 import me.superckl.conduits.conduit.connection.RedstoneMode;
 import me.superckl.conduits.conduit.network.inventory.InventoryConnectionMenu;
 import me.superckl.conduits.conduit.network.inventory.InventoryConnectionMenu.SettingsData;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
 public class InventoryConnectionScreen extends AbstractContainerScreen<InventoryConnectionMenu>{
 
-	public static final ResourceLocation BACKGROUND_LOCATION = new ResourceLocation(Conduits.MOD_ID, "textures/gui/conduit_gui.png");
-	public static final ResourceLocation WIDGETS_LOCATION = new ResourceLocation(Conduits.MOD_ID, "textures/gui/widgets.png");
+	public static final ResourceLocation BACKGROUND_LOCATION = ResourceLocation.fromNamespaceAndPath(Conduits.MOD_ID, "textures/gui/conduit_gui.png");
+	public static final ResourceLocation WIDGETS_LOCATION = ResourceLocation.fromNamespaceAndPath(Conduits.MOD_ID, "textures/gui/widgets.png");
 
 	private static final int guiHeight = 166;
 
-	private final TranslatableComponent insertLabel = new TranslatableComponent("conduits.gui.connection.insert");
-	private final TranslatableComponent extractLabel = new TranslatableComponent("conduits.gui.connection.extract");
+	private final Component insertLabel = Component.translatable("conduits.gui.connection.insert");
+	private final Component extractLabel = Component.translatable("conduits.gui.connection.extract");
 
 	private final List<AbstractWidget> widgets = new ArrayList<>();
 	private final List<TabWidget> tabs = new ArrayList<>();
@@ -89,7 +90,6 @@ public class InventoryConnectionScreen extends AbstractContainerScreen<Inventory
 				xOffset += TabWidget.Type.MIDDLE.getWidth();
 			final int jf = j;
 			this.tabs.add(new TabWidget(this.leftPos+1+xOffset, this.topPos, type,
-					(tab, pose, x, y) -> this.renderTooltip(pose, this.modes[jf].getDisplayName(), x, y),
 					x -> this.changeTab(jf), RedstoneMode.DISABLED));
 		}
 		this.tabs.get(this.modeIndex).setSelected(true);
@@ -121,35 +121,35 @@ public class InventoryConnectionScreen extends AbstractContainerScreen<Inventory
 	}
 
 	@Override
-	protected void renderBg(final PoseStack pPoseStack, final float pPartialTick, final int pMouseX, final int pMouseY) {
-		this.renderBackground(pPoseStack);
-		this.tabs.stream().filter(tab -> !tab.isSelected()).forEach(tab -> tab.render(pPoseStack, pMouseX, pMouseY, pPartialTick));
+	protected void renderBg(GuiGraphics pGuiGraphics, final float pPartialTick, final int pMouseX, final int pMouseY) {
+		this.renderBackground(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
+		this.tabs.stream().filter(tab -> !tab.isSelected()).forEach(tab -> tab.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick));
 
 		RenderSystem.setShader(GameRenderer::getPositionTexShader);
 		RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
 		RenderSystem.setShaderTexture(0, InventoryConnectionScreen.BACKGROUND_LOCATION);
 		final int i = (this.width - this.imageWidth) / 2;
 		final int j = (this.height - this.imageHeight) / 2;
-		this.blit(pPoseStack, i, j+26, 0, 0, this.imageWidth, InventoryConnectionScreen.guiHeight);
+		pGuiGraphics.blit(InventoryConnectionScreen.BACKGROUND_LOCATION, i, j+26, 0, 0, this.imageWidth, InventoryConnectionScreen.guiHeight);
 
-		this.tabs.stream().filter(TabWidget::isSelected).forEach(tab -> tab.render(pPoseStack, pMouseX, pMouseY, pPartialTick));
+		this.tabs.stream().filter(TabWidget::isSelected).forEach(tab -> tab.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick));
 	}
 
 	@Override
-	public void render(final PoseStack pPoseStack, final int pMouseX, final int pMouseY, final float pPartialTick) {
-		super.render(pPoseStack, pMouseX, pMouseY, pPartialTick);
-		Streams.concat(this.widgets.stream(), this.tabs.stream())
-		.filter(AbstractWidget::isHoveredOrFocused).forEach(w -> w.renderToolTip(pPoseStack, pMouseX, pMouseY));
+	public void render(final GuiGraphics pGuiGraphics, final int pMouseX, final int pMouseY, final float pPartialTick) {
+		super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
+		//Streams.concat(this.widgets.stream(), this.tabs.stream())
+		//.filter(AbstractWidget::isHoveredOrFocused).forEach(w -> w.renderToolTip(pPoseStack, pMouseX, pMouseY));
 	}
 
 	@Override
-	protected void renderLabels(final PoseStack pPoseStack, final int pMouseX, final int pMouseY) {
+	protected void renderLabels(final GuiGraphics pGuiGraphics, final int pMouseX, final int pMouseY) {
 		final int leftX = this.imageWidth/4-this.font.width(this.insertLabel)/2;
 		final int rightX = 3*this.imageWidth/4-this.font.width(this.extractLabel)/2;
 
-		this.font.draw(pPoseStack, this.insertLabel, leftX, this.titleLabelY, 4210752);
-		this.font.draw(pPoseStack, this.extractLabel, rightX, this.titleLabelY, 4210752);
-		this.font.draw(pPoseStack, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 4210752);
+		pGuiGraphics.drawString(this.font, this.insertLabel, leftX, this.titleLabelY, 4210752);
+		pGuiGraphics.drawString(this.font, this.extractLabel, rightX, this.titleLabelY, 4210752);
+		pGuiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 4210752);
 	}
 
 }

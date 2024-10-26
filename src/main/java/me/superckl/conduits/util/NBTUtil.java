@@ -45,17 +45,15 @@ public class NBTUtil {
 	}
 
 	public static <T, V> V encode(final DynamicOps<? extends V> ops, final T data, final Codec<? super T> codec) {
-		final var result = codec.encodeStart(ops, data).get();
-		if(result.right().isPresent())
-			throw new IllegalArgumentException(String.format("Failed to encode: %s", result.right().get().message()));
-		return result.left().get();
+		final var result = codec.encodeStart(ops, data);
+		result.ifError(err -> {throw new IllegalArgumentException(String.format("Failed to encode: %s", err.message()));});
+		return result.getOrThrow();
 	}
 
 	public static <T, V> T decode(final DynamicOps<V> ops, final V data, final Codec<? extends T> codec) {
-		final var result = codec.parse(ops, data).get();
-		if(result.right().isPresent())
-			throw new IllegalArgumentException(String.format("Failed to decode: %s", result.right().get().message()));
-		return result.left().get();
+		final var result = codec.parse(ops, data);
+		result.ifError(err -> {throw new IllegalArgumentException(String.format("Failed to decode: %s", err.message()));});
+		return result.getOrThrow();
 	}
 
 }

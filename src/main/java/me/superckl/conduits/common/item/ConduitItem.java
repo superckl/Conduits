@@ -1,23 +1,16 @@
 package me.superckl.conduits.common.item;
 
-import java.util.function.Consumer;
-
 import javax.annotation.Nullable;
 
 import lombok.Getter;
 import me.superckl.conduits.Conduits;
 import me.superckl.conduits.ModBlocks;
 import me.superckl.conduits.ModItems;
-import me.superckl.conduits.client.ConduitItemRenderer;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.ConduitTier;
 import me.superckl.conduits.conduit.ConduitType;
-import me.superckl.conduits.conduit.connection.ConduitConnectionMap;
-import me.superckl.conduits.conduit.connection.ConduitConnectionType;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.NonNullList;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -25,7 +18,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
@@ -33,35 +25,22 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.client.IItemRenderProperties;
-import net.minecraftforge.client.model.data.IModelData;
-import net.minecraftforge.client.model.data.ModelDataMap;
-import net.minecraftforge.common.util.Lazy;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import org.jetbrains.annotations.NotNull;
 
 @Getter
 public class ConduitItem extends BlockItem{
 
-	private final RegistryObject<ConduitType<?>> type;
+	private final DeferredHolder<ConduitType<?>, ? extends ConduitType<?>> type;
 	private final ConduitTier tier;
 	private final String descriptionId;
 
-	@Getter
-	private final Lazy<IModelData> renderData;
 
-	public ConduitItem(final RegistryObject<ConduitType<?>> type, final ConduitTier tier) {
-		super(ModBlocks.CONDUIT_BLOCK.get(), new Properties().tab(Conduits.CONDUIT_TAB));
+	public ConduitItem(final DeferredHolder<ConduitType<?>, ? extends ConduitType<?>> type, final ConduitTier tier) {
+		super(ModBlocks.CONDUIT_BLOCK.get(), new Properties());
 		this.type = type;
 		this.tier = tier;
-		this.descriptionId = Util.makeDescriptionId("item", new ResourceLocation(Conduits.MOD_ID, "conduit/"+type.getId().getPath()+"/"+tier.getSerializedName()));
-
-		this.renderData = Lazy.of(() -> {
-			final ConduitConnectionMap data = ConduitConnectionMap.make();
-			data.setTier(type.get(), tier);
-			data.makeConnection(type.get(), Direction.WEST, type.get().establishConnection(ConduitConnectionType.CONDUIT, Direction.WEST, null));
-			data.makeConnection(type.get(), Direction.EAST, type.get().establishConnection(ConduitConnectionType.CONDUIT, Direction.EAST, null));
-			return new ModelDataMap.Builder().withInitial(ConduitBlockEntity.CONNECTION_PROPERTY, data).build();
-		});
+		this.descriptionId = Util.makeDescriptionId("item", ResourceLocation.fromNamespaceAndPath(Conduits.MOD_ID, "conduit/"+type.getId().getPath()+"/"+tier.getSerializedName()));
 	}
 
 	/**
@@ -69,8 +48,8 @@ public class ConduitItem extends BlockItem{
 	 * places the block
 	 */
 	@Override
-	protected boolean updateCustomBlockEntityTag(final BlockPos pPos, final Level pLevel, @Nullable final Player pPlayer, final ItemStack pStack,
-			final BlockState pState) {
+	protected boolean updateCustomBlockEntityTag(final @NotNull BlockPos pPos, final Level pLevel, @Nullable final Player pPlayer, final ItemStack pStack,
+												 final @NotNull BlockState pState) {
 		final BlockEntity blockentity = pLevel.getBlockEntity(pPos);
 		if(blockentity instanceof final ConduitBlockEntity conduit) {
 			conduit.onPlaced(this);
@@ -83,9 +62,8 @@ public class ConduitItem extends BlockItem{
 	 * Handles conduit "overriding", when a player right clicks on a conduit with a different type or tier,
 	 * it should place it into the existing conduit if possible
 	 */
-	@SuppressWarnings("resource")
 	@Override
-	public InteractionResult onItemUseFirst(final ItemStack stack, final UseOnContext context) {
+	public @NotNull InteractionResult onItemUseFirst(final @NotNull ItemStack stack, final UseOnContext context) {
 		if(context.getPlayer() != null && context.getPlayer().isShiftKeyDown())
 			return super.onItemUseFirst(stack, context);
 		final Level level = context.getLevel();
@@ -105,7 +83,7 @@ public class ConduitItem extends BlockItem{
 				if(!player.isCreative()) {
 					stack.shrink(1);
 					player.addItem(toDrop.getDefaultInstance());
-					player.level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, ((player.getRandom().nextFloat() - player.getRandom().nextFloat()) * 0.7F + 1.0F) * 2.0F);
+					player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.2F, ((player.getRandom().nextFloat() - player.getRandom().nextFloat()) * 0.7F + 1.0F) * 2.0F);
 				}
 			}else {
 				stack.shrink(1);
@@ -117,25 +95,8 @@ public class ConduitItem extends BlockItem{
 	}
 
 	@Override
-	public String getDescriptionId() {
+	public @NotNull String getDescriptionId() {
 		return this.descriptionId;
-	}
-
-	@Override
-	public void fillItemCategory(final CreativeModeTab pGroup, final NonNullList<ItemStack> pItems) {
-		if(this.allowdedIn(pGroup))
-			pItems.add(this.getDefaultInstance());
-	}
-
-	@Override
-	public void initializeClient(final Consumer<IItemRenderProperties> consumer) {
-		consumer.accept(new IItemRenderProperties() {
-
-			@Override
-			public ConduitItemRenderer getItemStackRenderer() {
-				return ConduitItemRenderer.INSTANCE;
-			}
-		});
 	}
 
 }

@@ -35,7 +35,7 @@ public class GraphUtil {
 	}
 
 	public static <T> List<Set<T>> floodFill(final Graph<T> graph){
-		if(graph.nodes().size() == 0)
+		if(graph.nodes().isEmpty())
 			return Collections.emptyList();
 		final Set<T> nodes = new HashSet<>(graph.nodes());
 		final List<Set<T>> coloredNodes = new ArrayList<>();

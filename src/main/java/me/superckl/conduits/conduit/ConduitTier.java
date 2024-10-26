@@ -9,6 +9,7 @@ import com.mojang.serialization.Codec;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.util.StringRepresentable;
+import org.jetbrains.annotations.NotNull;
 
 @RequiredArgsConstructor
 public enum ConduitTier implements StringRepresentable{
@@ -18,12 +19,12 @@ public enum ConduitTier implements StringRepresentable{
 	LATE("late");
 
 	private static final Map<String, ConduitTier> BY_NAME = Arrays.stream(ConduitTier.values()).collect(Collectors.toMap(StringRepresentable::getSerializedName, v -> v));
-	public static final Codec<ConduitTier> CODEC = StringRepresentable.fromEnum(ConduitTier::values, ConduitTier.BY_NAME::get);
+	public static final Codec<ConduitTier> CODEC = StringRepresentable.fromEnum(ConduitTier::values);
 
 	private final String name;
 
 	@Override
-	public String getSerializedName() {
+	public @NotNull String getSerializedName() {
 		return this.name;
 	}
 

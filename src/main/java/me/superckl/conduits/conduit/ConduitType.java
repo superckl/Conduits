@@ -6,23 +6,29 @@ import javax.annotation.Nullable;
 
 import com.mojang.serialization.Codec;
 
+import com.mojang.serialization.MapCodec;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.connection.ConduitConnection;
 import me.superckl.conduits.conduit.connection.ConduitConnectionType;
 import me.superckl.conduits.conduit.network.inventory.TransferrableQuantity;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.registries.ForgeRegistryEntry;
+import org.jetbrains.annotations.NotNull;
 
-public abstract class ConduitType<T extends TransferrableQuantity> extends ForgeRegistryEntry<ConduitType<?>> implements Comparable<ConduitType<T>>{
+@RequiredArgsConstructor
+public abstract class ConduitType<T extends TransferrableQuantity> implements Comparable<ConduitType<?>>{
 
 	private Component displayName;
+	@Getter
+	private ResourceLocation resourceLocation;
 
 	public Component getDisplayName() {
 		if(this.displayName == null)
-			this.displayName = new TranslatableComponent("conduits.type."+this.getRegistryName().getPath());
+			this.displayName = Component.translatable("conduits.type."+this.getResourceLocation().getPath());
 		return this.displayName;
 	}
 
@@ -49,12 +55,17 @@ public abstract class ConduitType<T extends TransferrableQuantity> extends Forge
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(this.getRegistryName());
+		return Objects.hash(this.getResourceLocation());
 	}
+
+	public void setResourceLocation(ResourceLocation location){
+		if(this.resourceLocation != null)
+			throw new IllegalStateException(("Already set resource location of conduit type!"));
+		this.resourceLocation = location;
+    }
 
 	@Override
-	public int compareTo(final ConduitType<T> o) {
-		return this.getRegistryName().compareTo(o.getRegistryName());
+	public int compareTo(@NotNull ConduitType<?> o) {
+		return this.getResourceLocation().compareTo(o.getResourceLocation());
 	}
-
 }

@@ -162,7 +162,7 @@ public class ConduitNetworkGraph<T extends TransferrableQuantity>{
 	@Override
 	public String toString() {
 		this.checkInvalid();
-		final StringBuilder builder = new StringBuilder("ConduitNetworkGraph[Type: ").append(this.type.getRegistryName().getPath())
+		final StringBuilder builder = new StringBuilder("ConduitNetworkGraph[Type: ").append(this.type.getResourceLocation().getPath())
 				.append(", Conduit Positions: [");
 		this.conduits.keySet().forEach(pos -> {
 			builder.append(pos);
