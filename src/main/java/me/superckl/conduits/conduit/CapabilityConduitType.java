@@ -1,7 +1,6 @@
 package me.superckl.conduits.conduit;
 
 import com.mojang.serialization.Codec;
-
 import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.common.block.ConduitBlockEntity;
 import me.superckl.conduits.conduit.connection.ConduitConnection.Inventory;
@@ -19,70 +18,68 @@ import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 
-import java.util.Comparator;
-
 @RequiredArgsConstructor
 public abstract class CapabilityConduitType<T, V extends TransferrableQuantity> extends ConduitType<V> {
 
-	protected final BlockCapability<T, Direction> cap;
+    protected final BlockCapability<T, Direction> cap;
 
-	@Override
-	public boolean canConnect(final Direction dir, final BlockEntity be) {
-		return be.getLevel().getCapability(this.cap, be.getBlockPos(), be.getBlockState(), be, dir.getOpposite()) != null;
-	}
+    @Override
+    public boolean canConnect(final Direction dir, final BlockEntity be) {
+        return be.getLevel().getCapability(this.cap, be.getBlockPos(), be.getBlockState(), be, dir.getOpposite()) != null;
+    }
 
-	public static class Item extends CapabilityConduitType<IItemHandler, TransferrableQuantity.ItemQuantity>{
+    public static class Item extends CapabilityConduitType<IItemHandler, TransferrableQuantity.ItemQuantity> {
 
-		public Item() {
-			super(Capabilities.ItemHandler.BLOCK);
-		}
+        public Item() {
+            super(Capabilities.ItemHandler.BLOCK);
+        }
 
-		@Override
-		protected Inventory<ItemQuantity> establishConnection(final Direction dir, final ConduitBlockEntity owner) {
-			return new CapabilityInventory.Item(dir, new InventoryConnectionSettings()).setOwner(owner);
-		}
+        @Override
+        protected Inventory<ItemQuantity> establishConnection(final Direction dir, final ConduitBlockEntity owner) {
+            return new CapabilityInventory.Item(dir, new InventoryConnectionSettings()).setOwner(owner);
+        }
 
-		@Override
-		protected Codec<CapabilityInventory.Item> inventoryCodec() {
-			return CapabilityInventory.Item.CODEC;
-		}
+        @Override
+        protected Codec<CapabilityInventory.Item> inventoryCodec() {
+            return CapabilityInventory.Item.CODEC;
+        }
 
-	}
+    }
 
-	public static class Energy extends CapabilityConduitType<IEnergyStorage, TransferrableQuantity.EnergyQuantity>{
+    public static class Energy extends CapabilityConduitType<IEnergyStorage, TransferrableQuantity.EnergyQuantity> {
 
-		public Energy() {
-			super(Capabilities.EnergyStorage.BLOCK);
-		}
+        public Energy() {
+            super(Capabilities.EnergyStorage.BLOCK);
+        }
 
-		@Override
-		protected Inventory<EnergyQuantity> establishConnection(final Direction dir, final ConduitBlockEntity owner) {
-			return new CapabilityInventory.Energy(dir, new InventoryConnectionSettings().setProvideRedstoneMode(RedstoneMode.IGNORED)).setOwner(owner);
-		}
+        @Override
+        protected Inventory<EnergyQuantity> establishConnection(final Direction dir, final ConduitBlockEntity owner) {
+            return new CapabilityInventory.Energy(dir, new InventoryConnectionSettings().setProvideRedstoneMode(RedstoneMode.IGNORED)).setOwner(owner);
+        }
 
-		@Override
-		protected Codec<CapabilityInventory.Energy> inventoryCodec() {
-			return CapabilityInventory.Energy.CODEC;
-		}
+        @Override
+        protected Codec<CapabilityInventory.Energy> inventoryCodec() {
+            return CapabilityInventory.Energy.CODEC;
+        }
 
-	}
+    }
 
-	public static class Fluid extends CapabilityConduitType<IFluidHandler, TransferrableQuantity.FluidQuantity>{
+    public static class Fluid extends CapabilityConduitType<IFluidHandler, TransferrableQuantity.FluidQuantity> {
 
-		public Fluid() {
-			super(Capabilities.FluidHandler.BLOCK);
-		}
+        public Fluid() {
+            super(Capabilities.FluidHandler.BLOCK);
+        }
 
-		@Override
-		protected Inventory<TransferrableQuantity.FluidQuantity> establishConnection(final Direction dir, final ConduitBlockEntity owner) {
-			return new CapabilityInventory.Fluid(dir, new InventoryConnectionSettings()).setOwner(owner);
-		}
+        @Override
+        protected Inventory<TransferrableQuantity.FluidQuantity> establishConnection(final Direction dir, final ConduitBlockEntity owner) {
+            return new CapabilityInventory.Fluid(dir, new InventoryConnectionSettings()).setOwner(owner);
+        }
 
-		@Override
-		protected Codec<CapabilityInventory.Fluid> inventoryCodec() {
-			return CapabilityInventory.Fluid.CODEC;
-		}
+        @Override
+        protected Codec<CapabilityInventory.Fluid> inventoryCodec() {
+            return CapabilityInventory.Fluid.CODEC;
+        }
 
-	}
+    }
 
 }

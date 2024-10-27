@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.Conduits;
 import net.minecraft.client.renderer.texture.atlas.SpriteSource;
 import net.minecraft.client.renderer.texture.atlas.SpriteSourceType;
-import net.minecraft.client.renderer.texture.atlas.sources.DirectoryLister;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -29,11 +28,11 @@ public class ConduitDirectoryListerSource implements SpriteSource {
     @Override
     public void run(ResourceManager resourceManager, Output output) {
         Conduits.LOG.info("Loading conduits directory");
-        FileToIdConverter filetoidconverter = new FileToIdConverter("textures/"+ this.sourcePath, ".png");
+        FileToIdConverter filetoidconverter = new FileToIdConverter("textures/" + this.sourcePath, ".png");
         filetoidconverter.listMatchingResourcesFromNamespace(resourceManager, Conduits.MOD_ID).forEach((loc, resource) -> {
             ResourceLocation resourcelocation = filetoidconverter.fileToId(loc).withPrefix(this.idPrefix);
             output.add(resourcelocation, resource);
-            Conduits.LOG.info("Loaded texture at "+loc+" to "+resourcelocation);
+            Conduits.LOG.info("Loaded texture at " + loc + " to " + resourcelocation);
         });
     }
 

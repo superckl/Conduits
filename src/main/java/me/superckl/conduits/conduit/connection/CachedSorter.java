@@ -1,12 +1,6 @@
 package me.superckl.conduits.conduit.connection;
 
-import java.util.Comparator;
-import java.util.Random;
-import java.util.function.Consumer;
-import java.util.function.ToIntFunction;
-
 import com.google.common.graph.Graph;
-
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import lombok.RequiredArgsConstructor;
@@ -18,69 +12,73 @@ import me.superckl.conduits.util.GraphUtil;
 import me.superckl.conduits.util.Positioned;
 import net.minecraft.core.BlockPos;
 
-public abstract class CachedSorter<T> implements Comparator<T>{
+import java.util.Comparator;
+import java.util.Random;
+import java.util.function.Consumer;
 
-	private final Object2IntMap<T> values = new Object2IntOpenHashMap<>();
+public abstract class CachedSorter<T> implements Comparator<T> {
 
-	protected abstract int computeValue(T value);
+    private final Object2IntMap<T> values = new Object2IntOpenHashMap<>();
 
-	@Override
-	public int compare(final T o1, final T o2) {
-		return Integer.compare(this.values.computeIfAbsent(o1, (ToIntFunction<T>) this::computeValue),
-				this.values.computeIfAbsent(o2, (ToIntFunction<T>) this::computeValue));
-	}
+    protected abstract int computeValue(T value);
 
-	public static class RandomSorter<T> extends CachedSorter<T>{
+    @Override
+    public int compare(final T o1, final T o2) {
+        return Integer.compare(this.values.computeIfAbsent(o1, this::computeValue),
+                this.values.computeIfAbsent(o2, this::computeValue));
+    }
 
-		private final Random random = new Random();
+    public static class RandomSorter<T> extends CachedSorter<T> {
 
-		@Override
-		protected int computeValue(final T value) {
-			return this.random.nextInt();
-		}
+        private final Random random = new Random();
 
-		public static <T extends TransferrableQuantity, V extends Consumer<T>> Distributor<T, V> makeDistributor(final ConduitNetwork<T> network, final Positioned<V> provider){
-			return new Distributor.SimplePriorityDistributor<>(new RandomSorter<>());
-		}
+        @Override
+        protected int computeValue(final T value) {
+            return this.random.nextInt();
+        }
 
-	}
+        public static <T extends TransferrableQuantity, V extends Consumer<T>> Distributor<T, V> makeDistributor(final ConduitNetwork<T> network, final Positioned<V> provider) {
+            return new Distributor.SimplePriorityDistributor<>(new RandomSorter<>());
+        }
 
-	public static class AcceptPrioritySorter<T extends TransferrableQuantity, V extends Inventory<T>> extends CachedSorter<Positioned<V>>{
+    }
 
-		@Override
-		protected int computeValue(final Positioned<V> value) {
-			return value.value().getSettings().getAcceptPriority();
-		}
+    public static class AcceptPrioritySorter<T extends TransferrableQuantity, V extends Inventory<T>> extends CachedSorter<Positioned<V>> {
 
-		public static <T extends TransferrableQuantity, V extends Inventory<T>> Distributor<T, V> makeDistributor(final ConduitNetwork<T> network, final Positioned<V> provider){
-			return new Distributor.SimplePriorityDistributor<>(new AcceptPrioritySorter<>());
-		}
+        @Override
+        protected int computeValue(final Positioned<V> value) {
+            return value.value().getSettings().getAcceptPriority();
+        }
 
-	}
+        public static <T extends TransferrableQuantity, V extends Inventory<T>> Distributor<T, V> makeDistributor(final ConduitNetwork<T> network, final Positioned<V> provider) {
+            return new Distributor.SimplePriorityDistributor<>(new AcceptPrioritySorter<>());
+        }
 
-	@RequiredArgsConstructor
-	public static class DistanceSorter<T> extends CachedSorter<Positioned<T>>{
+    }
 
-		private final Object2IntMap<BlockPos> distances;
+    @RequiredArgsConstructor
+    public static class DistanceSorter<T> extends CachedSorter<Positioned<T>> {
 
-		public DistanceSorter(final BlockPos origin, final Graph<BlockPos> graph) {
-			this.distances = GraphUtil.distances(graph, origin);
-		}
+        private final Object2IntMap<BlockPos> distances;
 
-		@Override
-		protected int computeValue(final Positioned<T> value) {
-			return this.distances.getOrDefault(value.pos(), Integer.MAX_VALUE);
-		}
+        public DistanceSorter(final BlockPos origin, final Graph<BlockPos> graph) {
+            this.distances = GraphUtil.distances(graph, origin);
+        }
 
-		public static <T extends TransferrableQuantity, V extends Inventory<T>> Distributor<T, V> makeDistributor(final ConduitNetwork<T> network, final Positioned<V> provider){
-			return new Distributor.SimplePriorityDistributor<>(new DistanceSorter<>(network.computeDistanceMap(provider.pos())));
-		}
+        @Override
+        protected int computeValue(final Positioned<T> value) {
+            return this.distances.getOrDefault(value.pos(), Integer.MAX_VALUE);
+        }
 
-		@Override
-		public int compare(final Positioned<T> o1, final Positioned<T> o2) {
-			return super.compare(o2, o1);
-		}
+        public static <T extends TransferrableQuantity, V extends Inventory<T>> Distributor<T, V> makeDistributor(final ConduitNetwork<T> network, final Positioned<V> provider) {
+            return new Distributor.SimplePriorityDistributor<>(new DistanceSorter<>(network.computeDistanceMap(provider.pos())));
+        }
 
-	}
+        @Override
+        public int compare(final Positioned<T> o1, final Positioned<T> o2) {
+            return super.compare(o2, o1);
+        }
+
+    }
 
 }

@@ -10,6 +10,6 @@ public class ModAttachments {
 
     public static final DeferredRegister<AttachmentType<?>> ATTACHMENT_TYPES = DeferredRegister.create(NeoForgeRegistries.ATTACHMENT_TYPES, Conduits.MOD_ID);
 
-    public static final DeferredHolder<AttachmentType<?>, AttachmentType<NetworkTicker>> NETWORK_TICKER= ATTACHMENT_TYPES.register("network_ticker", () -> AttachmentType.builder(NetworkTicker::new).build());
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<NetworkTicker>> NETWORK_TICKER = ATTACHMENT_TYPES.register("network_ticker", () -> AttachmentType.builder(NetworkTicker::new).build());
 
 }

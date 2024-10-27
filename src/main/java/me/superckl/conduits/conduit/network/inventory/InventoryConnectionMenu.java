@@ -1,9 +1,5 @@
 package me.superckl.conduits.conduit.network.inventory;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.RequiredArgsConstructor;
 import me.superckl.conduits.ModBlocks;
@@ -29,117 +25,124 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.NotNull;
 
-public class InventoryConnectionMenu extends AbstractContainerMenu{
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-	private final ConduitBlockEntity conduit;
-	private final Direction dir;
-	private final Map<ConduitType<?>, SettingsData> types;
+public class InventoryConnectionMenu extends AbstractContainerMenu {
 
-	public InventoryConnectionMenu(final int pContainerId, final Inventory inv, final FriendlyByteBuf buf) {
-		this(pContainerId, inv, buf.readBlockPos(), buf.readEnum(Direction.class));
-	}
+    private final ConduitBlockEntity conduit;
+    private final Direction dir;
+    private final Map<ConduitType<?>, SettingsData> types;
 
-	public InventoryConnectionMenu(final int pContainerId, final Inventory inv, final BlockPos pos, final Direction dir) {
-		super(ModContainers.INVENTORY_CONNECTION.get(), pContainerId);
-		this.dir = dir;
-		this.conduit = inv.player.level().getBlockEntity(pos, ModBlocks.CONDUIT_ENTITY.get()).orElse(null);
+    public InventoryConnectionMenu(final int pContainerId, final Inventory inv, final FriendlyByteBuf buf) {
+        this(pContainerId, inv, buf.readBlockPos(), buf.readEnum(Direction.class));
+    }
 
-		if(this.conduit == null)
-			this.types = Collections.emptyMap();
-		else
-			this.types = this.conduit.getConnections().types().filter(type -> this.conduit.getConnections().hasConnection(type, this.dir))
-			.map(type -> this.conduit.getConnections().getConnection(type, this.dir))
-			.filter(con -> con.getConnectionType() == ConduitConnectionType.INVENTORY).map(ConduitConnection::asInventory)
-			.collect(Collectors.toMap(ConduitConnection::getType, invCon -> {
-				InventoryConnectionSettings settings = invCon.getSettings();
-				if(inv.player.level().isClientSide)
-					settings = settings.copy(x -> this.slotsChanged(null));
-				return new SettingsData(settings);
-			}, (x,y) -> {throw new UnsupportedOperationException();}, Object2ObjectOpenHashMap::new));
+    public InventoryConnectionMenu(final int pContainerId, final Inventory inv, final BlockPos pos, final Direction dir) {
+        super(ModContainers.INVENTORY_CONNECTION.get(), pContainerId);
+        this.dir = dir;
+        this.conduit = inv.player.level().getBlockEntity(pos, ModBlocks.CONDUIT_ENTITY.get()).orElse(null);
 
-		this.types.values().forEach(this::addDataSlots);
+        if (this.conduit == null)
+            this.types = Collections.emptyMap();
+        else
+            this.types = this.conduit.getConnections().types().filter(type -> this.conduit.getConnections().hasConnection(type, this.dir))
+                    .map(type -> this.conduit.getConnections().getConnection(type, this.dir))
+                    .filter(con -> con.getConnectionType() == ConduitConnectionType.INVENTORY).map(ConduitConnection::asInventory)
+                    .collect(Collectors.toMap(ConduitConnection::getType, invCon -> {
+                        InventoryConnectionSettings settings = invCon.getSettings();
+                        if (inv.player.level().isClientSide)
+                            settings = settings.copy(x -> this.slotsChanged(null));
+                        return new SettingsData(settings);
+                    }, (x, y) -> {
+                        throw new UnsupportedOperationException();
+                    }, Object2ObjectOpenHashMap::new));
 
-		for(int j = 0; j < 3; ++j)
-			for(int i = 0; i < 9; ++i)
-				this.addSlot(new Slot(inv, i + (j + 1) * 9, 8 + i * 18, j * 18 + 110));
+        this.types.values().forEach(this::addDataSlots);
 
-		for(int i = 0; i < 9; ++i)
-			this.addSlot(new Slot(inv, i, 8 + i * 18, 168));
+        for (int j = 0; j < 3; ++j)
+            for (int i = 0; i < 9; ++i)
+                this.addSlot(new Slot(inv, i + (j + 1) * 9, 8 + i * 18, j * 18 + 110));
 
-		this.addSlotListener(new ContainerListener() {
+        for (int i = 0; i < 9; ++i)
+            this.addSlot(new Slot(inv, i, 8 + i * 18, 168));
 
-			@Override
-			public void slotChanged(final @NotNull AbstractContainerMenu pContainerToSend, final int pSlotInd, final @NotNull ItemStack pStack) {}
+        this.addSlotListener(new ContainerListener() {
 
-			@Override
-			public void dataChanged(final @NotNull AbstractContainerMenu pContainerMenu, final int pDataSlotIndex, final int pValue) {
-				PacketDistributor.sendToServer(new SyncConduitSettingPacket.Data(pDataSlotIndex, pValue));
-			}
-		});
+            @Override
+            public void slotChanged(final @NotNull AbstractContainerMenu pContainerToSend, final int pSlotInd, final @NotNull ItemStack pStack) {
+            }
 
-	}
+            @Override
+            public void dataChanged(final @NotNull AbstractContainerMenu pContainerMenu, final int pDataSlotIndex, final int pValue) {
+                PacketDistributor.sendToServer(new SyncConduitSettingPacket.Data(pDataSlotIndex, pValue));
+            }
+        });
 
-	public SettingsData getSettings(final ConduitType<?> type) {
-		return this.types.get(type);
-	}
+    }
 
-	public ConduitType<?>[] getTypes() {
-		return this.types.keySet().toArray(ConduitType[]::new);
-	}
+    public SettingsData getSettings(final ConduitType<?> type) {
+        return this.types.get(type);
+    }
 
-	@Override
-	public @NotNull ItemStack quickMoveStack(@NotNull Player pPlayer, int pIndex) {
-		return ItemStack.EMPTY;
-	}
+    public ConduitType<?>[] getTypes() {
+        return this.types.keySet().toArray(ConduitType[]::new);
+    }
 
-	@Override
-	public boolean stillValid(final @NotNull Player pPlayer) {
-		return this.conduit != null && !this.conduit.isRemoved();
-	}
+    @Override
+    public @NotNull ItemStack quickMoveStack(@NotNull Player pPlayer, int pIndex) {
+        return ItemStack.EMPTY;
+    }
 
-	@RequiredArgsConstructor
-	public static class SettingsData implements ContainerData {
+    @Override
+    public boolean stillValid(final @NotNull Player pPlayer) {
+        return this.conduit != null && !this.conduit.isRemoved();
+    }
 
-		private final InventoryConnectionSettings settings;
+    @RequiredArgsConstructor
+    public static class SettingsData implements ContainerData {
 
-		@Override
-		public int get(final int pIndex) {
-			return this.get(InventoryConnectionSettings.Setting.values()[pIndex]);
-		}
+        private final InventoryConnectionSettings settings;
 
-		public int get(final InventoryConnectionSettings.Setting setting) {
-			return setting.getSyncHelper().get(this.settings);
-		}
+        @Override
+        public int get(final int pIndex) {
+            return this.get(InventoryConnectionSettings.Setting.values()[pIndex]);
+        }
 
-		@Override
-		public void set(final int pIndex, final int pValue) {
-			this.set(InventoryConnectionSettings.Setting.values()[pIndex], pValue);
-		}
+        public int get(final InventoryConnectionSettings.Setting setting) {
+            return setting.getSyncHelper().get(this.settings);
+        }
 
-		public void set(final InventoryConnectionSettings.Setting setting, final int value) {
-			setting.getSyncHelper().setFor(this.settings, value);
-		}
+        @Override
+        public void set(final int pIndex, final int pValue) {
+            this.set(InventoryConnectionSettings.Setting.values()[pIndex], pValue);
+        }
 
-		@Override
-		public int getCount() {
-			return InventoryConnectionSettings.Setting.values().length;
-		}
+        public void set(final InventoryConnectionSettings.Setting setting, final int value) {
+            setting.getSyncHelper().setFor(this.settings, value);
+        }
 
-	}
+        @Override
+        public int getCount() {
+            return InventoryConnectionSettings.Setting.values().length;
+        }
 
-	public static MenuProvider makeProvider(final BlockPos pos, final Direction dir) {
-		return new MenuProvider() {
+    }
 
-			@Override
-			public AbstractContainerMenu createMenu(final int pContainerId, final @NotNull Inventory pInventory, final @NotNull Player pPlayer) {
-				return new InventoryConnectionMenu(pContainerId, pInventory, pos, dir);
-			}
+    public static MenuProvider makeProvider(final BlockPos pos, final Direction dir) {
+        return new MenuProvider() {
 
-			@Override
-			public @NotNull Component getDisplayName() {
-				return Component.translatable("conduit.gui.connection.title");
-			}
-		};
-	}
+            @Override
+            public AbstractContainerMenu createMenu(final int pContainerId, final @NotNull Inventory pInventory, final @NotNull Player pPlayer) {
+                return new InventoryConnectionMenu(pContainerId, pInventory, pos, dir);
+            }
+
+            @Override
+            public @NotNull Component getDisplayName() {
+                return Component.translatable("conduit.gui.connection.title");
+            }
+        };
+    }
 
 }

@@ -11,20 +11,21 @@ import net.neoforged.neoforge.data.event.GatherDataEvent;
 @EventBusSubscriber(modid = Conduits.MOD_ID, bus = EventBusSubscriber.Bus.MOD)
 public final class ConduitsDataGen {
 
-	private ConduitsDataGen() {}
+    private ConduitsDataGen() {
+    }
 
-	@SubscribeEvent
-	public static void gatherData(final GatherDataEvent e) {
-		final var gen = e.getGenerator();
-		final var fileHelper = e.getExistingFileHelper();
+    @SubscribeEvent
+    public static void gatherData(final GatherDataEvent e) {
+        final var gen = e.getGenerator();
+        final var fileHelper = e.getExistingFileHelper();
 
-		gen.addProvider(e.includeClient(), new ConduitsItemModelProvider(gen, fileHelper));
-		gen.addProvider(e.includeClient(), new ConduitsBlockStateProvider(gen, fileHelper));
-		gen.addProvider(e.includeClient(), new ConduitsLanguageProvider(gen));
+        gen.addProvider(e.includeClient(), new ConduitsItemModelProvider(gen, fileHelper));
+        gen.addProvider(e.includeClient(), new ConduitsBlockStateProvider(gen, fileHelper));
+        gen.addProvider(e.includeClient(), new ConduitsLanguageProvider(gen));
 
-		if(e.includeServer()) {
+        if (e.includeServer()) {
 
-		}
-	}
+        }
+    }
 
 }
